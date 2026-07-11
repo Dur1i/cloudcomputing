@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Join TC Today</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/social-modern.css">
+    <script src="/js/social-modern.js"></script>
+</head>
+<body>
+    <main class="auth-page">
+        <section class="auth-card ui-stack" aria-labelledby="registerTitle">
+            <div class="text-center mb-4">
+                <div class="brand-mark mx-auto mb-3"><i class="fa-solid fa-globe"></i></div>
+                <h1 id="registerTitle" class="h3 fw-bold mb-1">Create your account</h1>
+                <p class="text-muted mb-0">Join your friends on TC Social.</p>
+            </div>
+
+            <div th:if="${error}" class="ui-alert ui-alert-danger" th:text="${error}"></div>
+
+            <form action="/register" method="POST" class="ui-stack">
+                <div class="ui-field">
+                    <label class="ui-label" for="fullName">Full name</label>
+                    <input id="fullName" type="text" name="fullName" class="form-control modern-input" placeholder="Your display name" autocomplete="name" required>
+                </div>
+                <div class="ui-field">
+                    <label class="ui-label" for="username">Username</label>
+                    <input id="username" type="text" name="username" class="form-control modern-input" placeholder="Choose a username" autocomplete="username" required>
+                </div>
+                <div class="ui-field">
+                    <label class="ui-label" for="email">Email</label>
+                    <input id="email" type="email" name="email" class="form-control modern-input" placeholder="you@example.com" autocomplete="email" required>
+                </div>
+                <div class="ui-field">
+                    <label class="ui-label" for="password">Password</label>
+                    <input id="password" type="password" name="password" class="form-control modern-input" placeholder="Create a password" autocomplete="new-password" required>
+                    <p class="ui-help mb-0">Use at least 6 characters for a safer account.</p>
+                </div>
+                <button type="submit" class="ui-button ui-button-primary w-100 fs-5">Sign up</button>
+            </form>
+
+            <div class="mt-4 text-center border-top pt-3">
+                <a href="/login" class="text-decoration-none fw-bold text-primary"><i class="fa-solid fa-arrow-left me-1"></i> Back to login</a>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0ea5e9">
+    <title>Home / TC</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/social-modern.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script src="/js/social-modern.js"></script>
+</head>
+<body>
+    <a href="#mainContent" class="skip-link">Skip to content</a>
+    <div class="toast-stack" id="toastStack"></div>
+
+    <div class="app-shell">
+        <aside class="left-rail d-flex flex-column">
+            <a class="brand" href="/">
+                <span class="brand-mark"><i class="fa-solid fa-globe"></i></span>
+                <span>TC Social</span>
+            </a>
+
+            <nav class="nav-stack">
+                <a class="nav-pill active" href="/"><i class="fa-solid fa-house"></i><span>Home</span></a>
+                <a class="nav-pill" href="/explore"><i class="fa-solid fa-compass"></i><span>Explore</span></a>
+                <a class="nav-pill" href="/messages"><i class="fa-solid fa-message"></i><span>Messages</span></a>
+                <a class="nav-pill" th:href="'/profile/' + ${currentUser.username}"><i class="fa-solid fa-user"></i><span>Profile</span></a>
+                <a class="nav-pill danger" th:if="${currentUser.role == 'ADMIN'}" href="/admin"><i class="fa-solid fa-shield-halved"></i><span>Admin</span></a>
+            </nav>
+
+            <div class="rail-profile">
+                <div class="d-flex align-items-center gap-2">
+                    <img th:src="${currentUser.avatarUrl != null ? currentUser.avatarUrl : 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" class="avatar avatar-sm" alt="avatar">
+                    <div class="min-w-0">
+                        <div class="fw-bold text-truncate" th:text="${currentUser.fullName}">User</div>
+                        <div class="text-muted small text-truncate" th:text="'@' + ${currentUser.username}">@username</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main id="mainContent" class="main-column" tabindex="-1">
+            <header class="page-header hero-header">
+                <div>
+                    <h1 class="page-title">Home</h1>
+                    <div class="text-muted small">Stories, posts and conversations</div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="icon-action" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
+                        <i class="fa-solid fa-circle-half-stroke"></i>
+                    </button>
+                    <a href="/logout" class="ui-button ui-button-danger">Logout</a>
+                </div>
+            </header>
+
+            <div th:if="${param.error != null || param.story != null}" class="surface-card p-3">
+                <div th:if="${param.error != null && param.error[0] == 'empty_post'}" class="ui-alert ui-alert-danger fw-bold">Bai viet khong duoc de trong.</div>
+                <div th:if="${param.error != null && param.error[0] == 'invalid_format'}" class="ui-alert ui-alert-danger fw-bold">Dinh dang file khong hop le.</div>
+                <div th:if="${param.error != null && param.error[0] == 'not_image'}" class="ui-alert ui-alert-danger fw-bold">Noi dung file bi tu choi.</div>
+                <div th:if="${param.story != null && param.story[0] == 'invalid'}" class="ui-alert ui-alert-danger fw-bold">Story chi ho tro anh hoac video hop le.</div>
+                <div th:if="${param.story != null && param.story[0] == 'empty'}" class="ui-alert ui-alert-warning fw-bold">Hay chon anh hoac video cho story.</div>
+                <div th:if="${param.story != null && param.story[0] == 'error'}" class="ui-alert ui-alert-danger fw-bold">Khong the dang story luc nay.</div>
+            </div>
+
+            <section class="story-card elevated-card" aria-labelledby="storiesTitle">
+                <div class="ui-section-heading">
+                    <div>
+                        <h2 id="storiesTitle" class="ui-section-title">Stories</h2>
+                        <p class="ui-section-subtitle">Disappear after 24h</p>
+                    </div>
+                </div>
+                <div class="story-strip" id="storyStrip">
+                    <button type="button" class="story-item create border-0 text-start" data-bs-toggle="modal" data-bs-target="#createStoryModal">
+                        <span class="story-ring"><span class="story-add"><i class="fa-solid fa-plus"></i></span></span>
+                        <span class="story-name">Add Story</span>
+                    </button>
+                    <button th:each="story : ${activeStories}" type="button" class="story-item border-0 text-start"
+                            th:data-story-id="${story.id}"
+                            th:data-story-media="${story.mediaUrl}"
+                            th:data-story-type="${story.mediaType}"
+                            th:data-story-name="${story.user.fullName}"
+                            th:data-story-avatar="${story.user.avatarUrl != null ? story.user.avatarUrl : 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}"
+                            th:data-story-caption="${story.caption}"
+                            th:data-story-owner="${story.user.id == currentUser.id}"
+                            onclick="openStory(this)">
+                        <span class="story-ring">
+                            <img th:src="${story.user.avatarUrl != null ? story.user.avatarUrl : 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" alt="story">
+                        </span>
+                        <span class="story-name" th:text="${story.user.fullName}">Friend</span>
+                    </button>
+                    <div th:if="${activeStories == null || activeStories.isEmpty()}" class="story-empty">
+                        <i class="fa-regular fa-clock text-primary"></i>
+                        <span>No stories yet</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="composer elevated-card" aria-labelledby="composerTitle">
+                <h2 id="composerTitle" class="visually-hidden">Create a post</h2>
+                <form action="/create-post" method="POST" enctype="multipart/form-data">
+                    <div class="d-flex gap-3">
+                        <img th:src="${currentUser.avatarUrl != null ? currentUser.avatarUrl : 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" class="avatar" alt="avatar">
+                        <div class="w-100 min-w-0">
+                            <label for="postContent" class="visually-hidden">Post content</label>
+                            <textarea id="postContent" name="content" class="form-control px-0" rows="2" placeholder="What would you like to share?" oninput="autoGrowTextarea(this)"></textarea>
+                            <div id="mediaPreviewContainer" class="mt-2 position-relative" style="display: none;">
+                                <button type="button" class="icon-action position-absolute top-0 end-0 m-2" onclick="removeMedia()" aria-label="Remove media">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                                <img id="imagePreview" class="post-media" style="display: none;" alt="preview">
+                                <video id="videoPreview" class="post-media" controls style="display: none;"></video>
+                            </div>
+                            <div class="composer-tools mt-2">
+                                <div class="d-flex gap-2">
+                                    <label for="imageUpload" class="icon-action mb-0" title="Attach photo or video" aria-label="Attach photo or video"><i class="fa-regular fa-image"></i></label>
+                                    <input id="imageUpload" type="file" name="imageFile" accept="image/*,video/*" style="display: none;" onchange="previewMedia(event)">
+                                    <button type="button" class="icon-action" data-bs-toggle="modal" data-bs-target="#createStoryModal" title="Create story" aria-label="Create story"><i class="fa-regular fa-circle-play"></i></button>
+                                </div>
+                                <button type="submit" class="ui-button ui-button-primary">Post</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </section>
+
+            <section id="feedContainer" class="feed-content app-ready" aria-live="polite">
+                <div th:if="${posts == null || posts.isEmpty()}" class="empty-state">
+                    <span class="empty-icon"><i class="fa-regular fa-newspaper"></i></span>
+                    <h2>No posts yet</h2>
+                    <p>When you or your friends share something, it will appear here.</p>
+                    <button type="button" class="ui-button ui-button-primary" onclick="document.querySelector('#postContent').focus()">Create first post</button>
+                </div>
+
+                <article th:each="post : ${posts}" class="post-card elevated-card" th:id="'post-' + ${post.id}">
+                    <div class="d-flex gap-3">
+                        <img th:src="${post.user.avatarUrl != null ? post.user.avatarUrl : 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" class="avatar" alt="avatar">
+                        <div class="w-100 min-w-0">
+                            <div class="d-flex justify-content-between gap-2">
+                                <div class="min-w-0">
+                                    <a th:href="'/profile/' + ${post.user.username}" class="post-author text-truncate d-inline-block" th:text="${post.user.fullName}">Name</a>
+                                    <span class="text-muted small" th:text="'@' + ${post.user.username}">@username</span>
+                                </div>
+                                <button th:if="${currentUser.id == post.user.id or currentUser.role == 'ADMIN'}" type="button" class="action-link danger" th:onclick="'deletePost(' + ${post.id} + ')'" aria-label="Delete post"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+
+                            <div class="mt-2 text-break post-body" th:utext="${post.content}">Content</div>
+
+                            <div th:if="${post.mediaUrl != null}" class="mt-3">
+                                <img th:if="${#strings.endsWith(#strings.toLowerCase(post.mediaUrl), '.jpg') or #strings.endsWith(#strings.toLowerCase(post.mediaUrl), '.jpeg') or #strings.endsWith(#strings.toLowerCase(post.mediaUrl), '.png') or #strings.endsWith(#strings.toLowerCase(post.mediaUrl), '.gif') or #strings.endsWith(#strings.toLowerCase(post.mediaUrl), '.webp')}" th:src="${post.mediaUrl}" class="post-media" alt="post media">
+                                <video th:if="${#strings.endsWith(#strings.toLowerCase(post.mediaUrl), '.mp4') or #strings.endsWith(#strings.toLowerCase(post.mediaUrl), '.webm') or #strings.endsWith(#strings.toLowerCase(post.mediaUrl), '.ogg')}" th:src="${post.mediaUrl}" class="post-media" controls></video>
+                            </div>
+
+                            <div class="post-actions">
+                                <button type="button" class="action-link" th:onclick="'toggleCommentSection(' + ${post.id} + ')'">
+                                    <i class="fa-regular fa-comment"></i>
+                                    <span data-role="comment-count" th:text="${post.comments != null ? post.comments.size() : post.commentCount}">0</span>
+                                </button>
+                                <button type="button"
+                                        th:classappend="${likedPostIds != null && likedPostIds.contains(post.id)} ? ' liked' : ''"
+                                        class="action-link danger"
+                                        th:onclick="'likePost(' + ${post.id} + ', this)'">
+                                    <i th:class="${likedPostIds != null && likedPostIds.contains(post.id)} ? 'fa-solid fa-heart' : 'fa-regular fa-heart'"></i>
+                                    <span data-role="like-count" th:text="${post.likes != null ? post.likes.size() : post.likeCount}">0</span>
+                                </button>
+                            </div>
+
+                            <div th:id="'comment-section-' + ${post.id}" style="display: none;" class="comment-panel">
+                                <div class="comment-list" th:id="'comment-list-' + ${post.id}">
+                                    <div th:each="cmt : ${post.comments}" class="mb-3 d-flex gap-2" th:data-comment-id="${cmt.id}">
+                                        <img th:src="${cmt.user.avatarUrl != null ? cmt.user.avatarUrl : 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" class="avatar avatar-sm" alt="avatar">
+                                        <div class="comment-bubble">
+                                            <a th:href="'/profile/' + ${cmt.user.username}" class="fw-bold text-decoration-none" th:text="${cmt.user.fullName}">Name</a>
+                                            <div class="text-break" th:text="${cmt.content}">Content</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <form action="/post/comment" method="POST" class="comment-form d-flex gap-2" onsubmit="submitComment(event, this)">
+                                    <input type="hidden" name="postId" th:value="${post.id}">
+                                    <input type="text" name="content" class="form-control modern-input" placeholder="Write a thoughtful reply..." required>
+                                    <button type="submit" class="ui-button ui-button-primary" data-no-loading="true">Reply</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </section>
+        </main>
+
+        <aside class="right-rail">
+            <section class="widget elevated-card">
+                <h2 class="widget-title">Contacts</h2>
+                <div id="contactsList" th:if="${contacts != null && !contacts.isEmpty()}">
+                    <a th:each="contact, contactStat : ${contacts}" th:href="'/profile/' + ${contact.username}" th:data-user-id="${contact.id}" class="contact-row">
+                        <img th:src="${contact.avatarUrl != null ? contact.avatarUrl : 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" class="avatar avatar-sm" alt="avatar">
+                        <div class="min-w-0 flex-grow-1">
+                            <div class="fw-bold text-truncate" th:text="${contact.fullName}">Friend</div>
+                            <div class="text-muted small text-truncate" th:text="'@' + ${contact.username}">@friend</div>
+                        </div>
+                        <span class="status-dot" th:classappend="${contactStat.index % 3 == 0} ? ' idle' : ''"></span>
+                    </a>
+                </div>
+                <div th:if="${contacts == null || contacts.isEmpty()}" class="empty-mini">
+                    <i class="fa-regular fa-address-book"></i>
+                    <span>No contacts yet. Follow someone to start chatting.</span>
+                </div>
+                <a href="/messages" class="ui-button ui-button-primary w-100 mt-3">Open messages</a>
+            </section>
+
+            <section class="widget elevated-card" th:if="${suggestedUsers != null && !suggestedUsers.isEmpty()}">
+                <h2 class="widget-title">Who to follow</h2>
+                <a th:each="u : ${suggestedUsers}" th:href="'/profile/' + ${u.username}" class="person-row">
+                    <img th:src="${u.avatarUrl != null ? u.avatarUrl : 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" class="avatar avatar-sm" alt="avatar">
+                    <div class="min-w-0">
+                        <div class="fw-bold text-truncate" th:text="${u.fullName}">Name</div>
+                        <div class="text-muted small text-truncate" th:text="'@' + ${u.username}">@username</div>
+                    </div>
+                </a>
+            </section>
+
+            <section class="widget elevated-card">
+                <h2 class="widget-title">Shortcuts</h2>
+                <a href="/explore" class="shortcut-row"><i class="fa-solid fa-compass"></i><span>Discover people</span></a>
+                <a th:href="'/profile/' + ${currentUser.username}" class="shortcut-row"><i class="fa-solid fa-user-pen"></i><span>Update profile</span></a>
+                <button type="button" class="shortcut-row border-0 w-100 text-start" data-bs-toggle="modal" data-bs-target="#createStoryModal"><i class="fa-regular fa-circle-play"></i><span>Create a story</span></button>
+            </section>
+        </aside>
+    </div>
+
+    <nav class="mobile-bottom-nav">
+        <a class="active" href="/" aria-label="Home"><i class="fa-solid fa-house"></i></a>
+        <a href="/explore" aria-label="Explore"><i class="fa-solid fa-compass"></i></a>
+        <a href="/messages" aria-label="Messages"><i class="fa-solid fa-message"></i></a>
+        <a th:href="'/profile/' + ${currentUser.username}" aria-label="Profile"><i class="fa-solid fa-user"></i></a>
+    </nav>
+
+    <div th:replace="~{components/modals :: modals}"></div>
+
+    <script th:inline="javascript">
+        window.currentUserId = [[${currentUser.id}]];
+        window.currentUserRole = /*[[${currentUser.role}]]*/ 'USER';
+
+        function appendRealtimeStory(story) {
+            if (!story || document.querySelector('[data-story-id="' + story.id + '"]')) return;
+            const strip = document.getElementById('storyStrip');
+            if (!strip) return;
+
+            const isOwnStory = story.userId === window.currentUserId;
+            const isContactStory = !!document.querySelector('[data-user-id="' + story.userId + '"]');
+            if (!isOwnStory && !isContactStory) return;
+
+            strip.querySelector('.story-empty')?.remove();
+            strip.insertAdjacentHTML('beforeend', `
+                <button type="button" class="story-item border-0 text-start"
+                        data-story-id="${story.id}"
+                        data-story-media="${story.mediaUrl}"
+                        data-story-type="${story.mediaType}"
+                        data-story-name="${story.fullName}"
+                        data-story-avatar="${story.avatarUrl}"
+                        data-story-caption="${story.caption || ''}"
+                        data-story-owner="${isOwnStory}"
+                        onclick="openStory(this)">
+                    <span class="story-ring"><img src="${story.avatarUrl}" alt="story"></span>
+                    <span class="story-name">${story.fullName}</span>
+                </button>`);
+        }
+
+        function initIndexPage() {
+            subscribeToTopic('/topic/posts', function(post) {
+                const container = document.getElementById('feedContainer');
+                if (!container || document.getElementById('post-' + post.id)) return;
+                container.querySelector('.empty-state')?.remove();
+                const el = document.createElement('div');
+                el.innerHTML = renderPostHTML(post).trim();
+                container.insertBefore(el.firstChild, container.firstChild);
+            });
+
+            subscribeToTopic('/topic/social', function(event) {
+                if (event.type === 'like_updated') {
+                    const post = document.getElementById('post-' + event.postId);
+                    const count = post?.querySelector('[data-role="like-count"]');
+                    if (count) count.innerText = event.likeCount;
+                } else if (event.type === 'comment_created') {
+                    const post = document.getElementById('post-' + event.postId);
+                    const count = post?.querySelector('[data-role="comment-count"]');
+                    if (count) count.innerText = event.commentCount;
+                    const list = document.getElementById('comment-list-' + event.postId);
+                    if (list && event.comment && !list.querySelector('[data-comment-id="' + event.comment.id + '"]')) {
+                        list.insertAdjacentHTML('beforeend', renderComment(event.comment));
+                    }
+                } else if (event.type === 'post_deleted') {
+                    document.getElementById('post-' + event.postId)?.remove();
+                } else if (event.type === 'story_created') {
+                    appendRealtimeStory(event.story);
+                } else if (event.type === 'story_deleted') {
+                    document.querySelector('[data-story-id="' + event.storyId + '"]')?.remove();
+                }
+            });
+        }
+
+        initIndexPage();
+    </script>
+</body>
+</html>

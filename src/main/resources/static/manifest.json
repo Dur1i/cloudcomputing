@@ -1,0 +1,16 @@
+{
+  "name": "TC Social",
+  "short_name": "TC",
+  "description": "Premium social media experience",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0ea5e9",
+  "icons": [
+    {
+      "src": "https://abs.twimg.com/favicons/twitter.3.ico",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

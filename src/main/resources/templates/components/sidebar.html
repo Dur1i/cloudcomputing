@@ -1,0 +1,35 @@
+<aside th:fragment="sidebar" class="left-rail hidden lg:flex flex-col flex-shrink-0 w-[236px]">
+    <a class="brand" href="/">
+        <span class="brand-mark"><i class="fa-solid fa-globe"></i></span>
+        <span>TC Social</span>
+    </a>
+
+    <nav class="nav-stack" id="sidebarNav">
+        <a class="nav-pill" href="/"><i class="fa-solid fa-house"></i><span>Home</span></a>
+        <a class="nav-pill" href="/explore"><i class="fa-solid fa-compass"></i><span>Explore</span></a>
+        <a class="nav-pill" href="/messages"><i class="fa-solid fa-message"></i><span>Messages</span></a>
+        <a class="nav-pill" th:href="'/profile/' + ${currentUser.username}"><i class="fa-solid fa-user"></i><span>Profile</span></a>
+        <a class="nav-pill danger" th:if="${currentUser.role == 'ADMIN'}" href="/admin"><i class="fa-solid fa-shield-halved"></i><span>Admin</span></a>
+    </nav>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const path = window.location.pathname;
+            document.querySelectorAll('#sidebarNav .nav-pill').forEach(link => {
+                const href = link.getAttribute('href');
+                if (href === path || (href !== '/' && path.startsWith(href))) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+
+    <div class="rail-profile mt-auto">
+        <div class="d-flex align-items-center gap-2">
+            <img th:src="${currentUser.avatarUrl != null ? currentUser.avatarUrl : 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" class="avatar avatar-sm" alt="avatar">
+            <div class="min-w-0">
+                <div class="fw-bold text-truncate text-[14px]" th:text="${currentUser.fullName}">User</div>
+                <div class="text-muted small text-truncate" th:text="'@' + ${currentUser.username}">@username</div>
+            </div>
+        </div>
+    </div>
+</aside>

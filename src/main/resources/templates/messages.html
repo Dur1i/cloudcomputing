@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Messages / TC</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Jost:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: 'var(--primary)',
+                        secondary: 'var(--accent)',
+                        cta: '#2563EB',
+                        glass: 'rgba(255, 255, 255, 0.72)',
+                        glassDark: 'rgba(15, 23, 42, 0.72)',
+                    },
+                    fontFamily: {
+                        sans: ['Jost', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/social-modern.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script src="/js/social-modern.js"></script>
+</head>
+<body>
+    <a href="#mainContent" class="skip-link">Skip to content</a>
+    <div class="toast-stack" id="toastStack"></div>
+    <div class="app-shell compact mt-4">
+        <div th:replace="~{components/sidebar :: sidebar}"></div>
+
+        <main id="mainContent" class="main-column flex-1 flex flex-col gap-6 pb-20 h-[95vh]" tabindex="-1">
+            <header class="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md sticky top-0 z-10 px-6 py-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm flex justify-between items-center flex-shrink-0">
+                <div>
+                    <h1 class="text-xl font-bold text-slate-900 dark:text-white">Messages</h1>
+                    <div class="text-sm text-slate-500 dark:text-slate-400">Private conversations</div>
+                </div>
+                <button type="button" class="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center" onclick="toggleTheme()" title="Toggle theme">
+                    <i class="fa-solid fa-circle-half-stroke"></i>
+                </button>
+            </header>
+
+            <section class="flex-1 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-sm overflow-hidden flex min-h-0 chat-layout-tailwind">
+                <!-- Left Sidebar: Chat List -->
+                <aside class="w-full sm:w-80 border-r border-slate-200/50 dark:border-slate-800/50 flex flex-col flex-shrink-0 chat-list-panel">
+                    <div class="p-4 border-b border-slate-100 dark:border-slate-800/60 flex-shrink-0">
+                        <h2 class="font-bold text-lg text-slate-900 dark:text-white">Chats</h2>
+                        <p class="text-sm text-slate-500">Contacts you follow</p>
+                    </div>
+                    <div id="userListContainer" class="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+                        <button th:each="u : ${users}" type="button" class="chat-user-row w-full flex items-center gap-3 p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-100 dark:border-slate-800/30 text-left relative"
+                                th:data-id="${u.id}" th:data-name="${u.fullName}"
+                                th:aria-label="'Open chat with ' + ${u.fullName}"
+                                onclick="openChat(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                            <img th:src="${u.avatarUrl != null ? u.avatarUrl : 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-transparent" alt="avatar">
+                            <span class="min-w-0 flex-1">
+                                <span class="font-bold text-[15px] text-slate-900 dark:text-white truncate block" th:text="${u.fullName}">Name</span>
+                                <span class="text-sm text-slate-500 truncate block mt-0.5" th:id="'latest-msg-' + ${u.id}" th:text="'@' + ${u.username}">@username</span>
+                            </span>
+                        </button>
+                    </div>
+                    <div th:if="${users == null || users.isEmpty()}" class="m-6 text-center text-slate-500 text-sm">
+                        <i class="fa-regular fa-message text-2xl mb-2 text-slate-400"></i>
+                        <p>No conversations yet. Follow someone to start messaging.</p>
+                    </div>
+                </aside>
+
+                <!-- Right Area: Chat Box -->
+                <section class="flex-1 flex-col relative bg-slate-50/50 dark:bg-slate-950/50 hidden sm:flex chat-box-panel">
+                    <div class="px-6 py-4 border-b border-slate-200/50 dark:border-slate-800/50 flex justify-between items-center bg-white/50 dark:bg-slate-900/50 backdrop-blur-md flex-shrink-0">
+                        <div class="flex items-center gap-3">
+                            <button type="button" class="sm:hidden w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center" onclick="closeMobileChat()" aria-label="Back to chats">
+                                <i class="fa-solid fa-arrow-left"></i>
+                            </button>
+                            <div class="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 hidden sm:block" id="chatHeaderAvatarPlaceholder"></div>
+                            <div>
+                                <h2 class="font-bold text-slate-900 dark:text-white" id="chatHeaderName">Select a conversation</h2>
+                                <div class="text-sm text-slate-500" id="chatHeaderHint">Choose someone to start chatting</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar flex flex-col gap-4" id="chatMessages">
+                        <div class="m-auto text-center flex flex-col items-center" id="welcomeMsg">
+                            <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-primary to-secondary text-white flex items-center justify-center shadow-lg shadow-primary/30 mb-4">
+                                <i class="fa-solid fa-comments text-2xl"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-1">Welcome to your inbox</h3>
+                            <p class="text-slate-500 dark:text-slate-400 text-sm">Select a user from the list to begin.</p>
+                        </div>
+                    </div>
+
+                    <div class="p-4 border-t border-slate-200/50 dark:border-slate-800/50 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md flex-shrink-0" id="chatInputArea" style="display: none;">
+                        <div class="flex items-center gap-3 bg-white dark:bg-slate-900 rounded-full pl-4 pr-2 py-2 shadow-sm border border-slate-200/50 dark:border-slate-800/50">
+                            <label for="chatFileUpload" class="w-8 h-8 rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary transition-colors flex items-center justify-center cursor-pointer flex-shrink-0">
+                                <i class="fa-regular fa-image text-lg"></i>
+                            </label>
+                            <input type="file" id="chatFileUpload" class="hidden" onchange="sendChatFile(event)" aria-label="Attach a file">
+                            <label for="messageInput" class="visually-hidden">Message</label>
+                            <input type="text" id="messageInput" class="flex-1 bg-transparent border-transparent text-slate-900 dark:text-white text-[15px] focus:ring-0 focus:border-transparent placeholder-slate-400 p-0" placeholder="Message..." autocomplete="off" onkeypress="if(event.key==='Enter') sendMessage()">
+                            <button type="button" class="w-10 h-10 rounded-full bg-primary hover:bg-rose-500 text-white shadow-md shadow-primary/30 flex items-center justify-center transition-transform hover:scale-[1.05] active:scale-[0.95] flex-shrink-0" onclick="sendMessage()" aria-label="Send"><i class="fa-solid fa-paper-plane text-sm ml-[-2px]"></i></button>
+                        </div>
+                    </div>
+                </section>
+            </section>
+        </main>
+    </div>
+
+    <nav class="mobile-bottom-nav">
+        <a href="/" aria-label="Home"><i class="fa-solid fa-house"></i></a>
+        <a href="/explore" aria-label="Explore"><i class="fa-solid fa-compass"></i></a>
+        <a class="active" href="/messages" aria-label="Messages"><i class="fa-solid fa-message"></i></a>
+        <a th:href="'/profile/' + ${currentUser.username}" aria-label="Profile"><i class="fa-solid fa-user"></i></a>
+    </nav>
+    <div th:replace="~{components/modals :: modals}"></div>
+    <script th:inline="javascript">
+        const currentUserId = [[${currentUser.id}]];
+        let currentReceiverId = null;
+        let stompClient = null;
+
+        function initSidebar() {
+            const seenIds = new Set();
+            document.querySelectorAll('[data-id]').forEach(item => {
+                const id = item.getAttribute('data-id');
+                if (seenIds.has(id)) {
+                    item.remove();
+                    return;
+                }
+
+                seenIds.add(id);
+                fetch('/api/chat/history/' + currentUserId + '/' + id)
+                    .then(res => res.json())
+                    .then(msgs => {
+                        if (msgs && msgs.length > 0) {
+                            const last = msgs[msgs.length - 1];
+                            updateSidebarMessage(id, last.senderId, last.content);
+                        }
+                    });
+            });
+        }
+
+        function updateSidebarMessage(partnerId, senderId, content) {
+            const el = document.getElementById('latest-msg-' + partnerId);
+            if (!el) return;
+
+            const prefix = senderId == currentUserId ? "You: " : "";
+            const displayContent = content.startsWith("[FILE]:") ? "Sent an attachment" : content;
+            el.innerText = prefix + displayContent;
+            el.className = senderId != currentUserId ? 'text-sm text-slate-900 dark:text-white font-medium truncate block mt-0.5' : 'text-sm text-slate-500 truncate block mt-0.5';
+
+            const userItem = el.closest('[data-id]');
+            const container = document.getElementById('userListContainer');
+            if (userItem && container) container.prepend(userItem);
+        }
+
+        function connect() {
+            const socket = new SockJS('/ws');
+            stompClient = Stomp.over(socket);
+            stompClient.debug = null;
+            stompClient.connect({}, function () {
+                stompClient.subscribe('/topic/messages/' + currentUserId, function (msg) {
+                    const data = JSON.parse(msg.body);
+                    if (data.senderId == currentReceiverId || data.senderId == currentUserId) {
+                        appendMsg(data.content, data.senderId == currentUserId ? 'sent' : 'received');
+                    }
+                    const partnerId = data.senderId == currentUserId ? data.receiverId : data.senderId;
+                    updateSidebarMessage(partnerId, data.senderId, data.content);
+                });
+                stompClient.subscribe('/topic/social', function (msg) {
+                    const event = JSON.parse(msg.body);
+                    if (event.type === 'follow_updated') handleFollowRealtime(event);
+                });
+            });
+        }
+
+        function handleFollowRealtime(event) {
+            if (event.actorId !== currentUserId && event.targetId !== currentUserId) return;
+            const otherUser = event.actorId === currentUserId ? event.target : event.actor;
+            if (!otherUser) return;
+
+            if (event.status === 'followed') {
+                if (!document.querySelector(`[data-id="${otherUser.id}"]`)) {
+                    document.getElementById('userListContainer').insertAdjacentHTML('afterbegin', renderChatUser(otherUser));
+                }
+                showToast(`${otherUser.fullName} added to messages`, 'success');
+            } else {
+                document.querySelector(`[data-id="${otherUser.id}"]`)?.remove();
+                if (currentReceiverId == otherUser.id) {
+                    currentReceiverId = null;
+                    document.getElementById('chatHeaderName').innerText = 'Select a conversation';
+                    document.getElementById('chatHeaderHint').innerText = 'Choose someone to start chatting';
+                    document.getElementById('chatHeaderAvatarPlaceholder').style.display = 'block';
+                    document.getElementById('chatMessages').innerHTML = '<div class="m-auto text-center flex flex-col items-center"><div class="w-16 h-16 rounded-full bg-gradient-to-tr from-primary to-secondary text-white flex items-center justify-center shadow-lg shadow-primary/30 mb-4"><i class="fa-solid fa-comments text-2xl"></i></div><h3 class="text-xl font-bold text-slate-900 dark:text-white mb-1">Welcome to your inbox</h3><p class="text-slate-500 dark:text-slate-400 text-sm">Select a user from the list to begin.</p></div>';
+                    document.getElementById('chatInputArea').style.display = 'none';
+                }
+                showToast(`${otherUser.fullName} removed from messages`, 'info');
+            }
+        }
+
+        function renderChatUser(user) {
+            return `
+                <button type="button" class="chat-user-row w-full flex items-center gap-3 p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-100 dark:border-slate-800/30 text-left relative"
+                        data-id="${user.id}" data-name="${user.fullName}"
+                        aria-label="Open chat with ${user.fullName}"
+                        onclick="openChat(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                    <img src="${user.avatarUrl}" class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-transparent" alt="avatar">
+                    <span class="min-w-0 flex-1">
+                        <span class="font-bold text-[15px] text-slate-900 dark:text-white truncate block">${user.fullName}</span>
+                        <span class="text-sm text-slate-500 truncate block mt-0.5" id="latest-msg-${user.id}">@${user.username}</span>
+                    </span>
+                </button>`;
+        }
+
+        function openChat(id, name) {
+            currentReceiverId = id;
+            document.querySelectorAll('.chat-user-row').forEach(item => {
+                const isActive = item.getAttribute('data-id') == id;
+                item.classList.toggle('bg-slate-50', isActive);
+                item.classList.toggle('dark:bg-slate-800/80', isActive);
+                const img = item.querySelector('img');
+                if(isActive) {
+                    img.classList.remove('border-transparent');
+                    img.classList.add('border-primary');
+                } else {
+                    img.classList.remove('border-primary');
+                    img.classList.add('border-transparent');
+                }
+            });
+            document.getElementById('chatHeaderName').innerText = name;
+            document.getElementById('chatHeaderHint').innerText = 'Active conversation';
+            document.getElementById('chatHeaderAvatarPlaceholder').style.display = 'none';
+            const welcome = document.getElementById('welcomeMsg');
+            if (welcome) welcome.style.display = 'none';
+            document.getElementById('chatMessages').innerHTML = '';
+            document.getElementById('chatInputArea').style.display = 'block';
+            fetch('/api/chat/history/' + currentUserId + '/' + id)
+                .then(res => res.json())
+                .then(msgs => msgs.forEach(m => appendMsg(m.content, m.senderId == currentUserId ? 'sent' : 'received')));
+            
+            // On mobile, hide the left sidebar when opening a chat
+            if (window.innerWidth < 640) {
+                const chatList = document.querySelector('.chat-list-panel');
+                const chatBox = document.querySelector('.chat-box-panel');
+                if (chatList && chatBox) {
+                    chatList.classList.add('hidden');
+                    chatBox.classList.remove('hidden');
+                    chatBox.classList.add('flex');
+                }
+            }
+        }
+
+        function closeMobileChat() {
+            const chatList = document.querySelector('.chat-list-panel');
+            const chatBox = document.querySelector('.chat-box-panel');
+            if (chatList && chatBox) {
+                chatList.classList.remove('hidden');
+                chatBox.classList.add('hidden');
+                chatBox.classList.remove('flex');
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            if (text && stompClient && currentReceiverId) {
+                stompClient.send("/app/chat", {}, JSON.stringify({
+                    senderId: parseInt(currentUserId),
+                    receiverId: parseInt(currentReceiverId),
+                    content: text
+                }));
+                updateSidebarMessage(currentReceiverId, currentUserId, text);
+                input.value = '';
+            }
+        }
+
+        function sendChatFile(event) {
+            const file = event.target.files[0];
+            if (!file || !currentReceiverId) return;
+            if (file.size > 100 * 1024 * 1024) {
+                showToast('File is too large. Please choose a file under 100MB.', 'error');
+                event.target.value = '';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", file);
+            fetch('/api/chat/upload', { method: 'POST', body: formData })
+                .then(res => res.text())
+                .then(url => {
+                    if (url !== 'error') {
+                        const content = "[FILE]:" + url;
+                        stompClient.send("/app/chat", {}, JSON.stringify({
+                            senderId: parseInt(currentUserId),
+                            receiverId: parseInt(currentReceiverId),
+                            content: content
+                        }));
+                        updateSidebarMessage(currentReceiverId, currentUserId, content);
+                    } else {
+                        showToast('Upload failed', 'error');
+                    }
+                });
+            event.target.value = '';
+        }
+
+        function appendMsg(text, type) {
+            const container = document.getElementById('chatMessages');
+            const wrapper = document.createElement('div');
+            wrapper.className = type === 'sent' ? 'flex justify-end' : 'flex justify-start';
+            
+            const div = document.createElement('div');
+            
+            const baseBubbleClass = "max-w-[75%] px-4 py-2.5 rounded-2xl text-[15px] break-words leading-relaxed shadow-sm ";
+            const sentClass = "bg-gradient-to-tr from-primary to-secondary text-white rounded-br-sm";
+            const receivedClass = "bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-bl-sm border border-slate-100 dark:border-slate-700/50";
+            
+            div.className = baseBubbleClass + (type === 'sent' ? sentClass : receivedClass);
+
+            if (text.startsWith("[FILE]:")) {
+                const url = text.replace("[FILE]:", "");
+                const ext = url.split('.').pop().toLowerCase();
+                if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+                    div.innerHTML = `<img src="${url}" class="max-w-[200px] sm:max-w-[250px] rounded-xl object-cover" alt="attachment">`;
+                    // Remove padding for image bubbles
+                    div.className = div.className.replace('px-4 py-2.5', 'p-1');
+                } else if (['mp4', 'webm', 'ogg'].includes(ext)) {
+                    div.innerHTML = `<video src="${url}" controls class="max-w-[200px] sm:max-w-[250px] rounded-xl"></video>`;
+                    div.className = div.className.replace('px-4 py-2.5', 'p-1');
+                } else {
+                    div.innerHTML = `<a href="${url}" target="_blank" class="font-bold flex items-center gap-2 hover:opacity-80"><i class="fa-solid fa-paperclip"></i>Attached file</a>`;
+                }
+            } else {
+                div.innerText = text;
+            }
+
+            wrapper.appendChild(div);
+            container.appendChild(wrapper);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        window.addEventListener('load', function() {
+            initSidebar();
+            connect();
+        });
+    </script>
+</body>
+</html>
+

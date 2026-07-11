@@ -1,0 +1,6 @@
+<nav th:fragment="mobile_nav" class="mobile-bottom-nav">
+    <a href="/" aria-label="Home"><i class="fa-solid fa-house"></i></a>
+    <a href="/explore" aria-label="Explore"><i class="fa-solid fa-compass"></i></a>
+    <a href="/messages" aria-label="Messages"><i class="fa-solid fa-message"></i></a>
+    <a th:href="'/profile/' + ${currentUser.username}" aria-label="Profile"><i class="fa-solid fa-user"></i></a>
+</nav>

@@ -1,0 +1,49 @@
+<aside th:fragment="rightbar" class="right-rail hidden xl:block w-[292px] flex-shrink-0">
+    <!-- Search Bar -->
+    <div class="relative group mb-3">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i class="fa-solid fa-search text-muted transition-colors"></i>
+        </div>
+        <input type="text" class="form-control modern-input rounded-pill border-0 bg-white dark:bg-slate-800" style="padding-left: 2.5rem;" placeholder="Search people, posts...">
+    </div>
+
+    <!-- Contacts -->
+    <section class="widget elevated-card">
+        <h2 class="widget-title">Contacts</h2>
+        <div id="contactsList" th:if="${contacts != null && !contacts.isEmpty()}">
+            <a th:each="contact, contactStat : ${contacts}" th:href="'/profile/' + ${contact.username}" th:data-user-id="${contact.id}" class="contact-row">
+                <img th:src="${contact.avatarUrl != null ? contact.avatarUrl : 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" class="avatar avatar-sm" alt="avatar">
+                <div class="min-w-0 flex-grow-1">
+                    <div class="fw-bold text-truncate" th:text="${contact.fullName}">Friend</div>
+                    <div class="text-muted small text-truncate" th:text="'@' + ${contact.username}">@friend</div>
+                </div>
+                <span class="status-dot" th:classappend="${contactStat.index % 3 == 0} ? ' idle' : ''"></span>
+            </a>
+        </div>
+        <div th:if="${contacts == null || contacts.isEmpty()}" class="empty-mini">
+            <i class="fa-regular fa-address-book"></i>
+            <span>No contacts yet. Follow someone to start chatting.</span>
+        </div>
+        <a href="/messages" class="ui-button ui-button-primary w-100 mt-3 text-center">Open messages</a>
+    </section>
+
+    <!-- Suggested Users -->
+    <section class="widget elevated-card" th:if="${suggestedUsers != null && !suggestedUsers.isEmpty()}">
+        <h2 class="widget-title">Who to follow</h2>
+        <a th:each="u : ${suggestedUsers}" th:href="'/profile/' + ${u.username}" class="person-row">
+            <img th:src="${u.avatarUrl != null ? u.avatarUrl : 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" class="avatar avatar-sm" alt="avatar">
+            <div class="min-w-0">
+                <div class="fw-bold text-truncate" th:text="${u.fullName}">Name</div>
+                <div class="text-muted small text-truncate" th:text="'@' + ${u.username}">@username</div>
+            </div>
+        </a>
+    </section>
+
+    <!-- Shortcuts -->
+    <section class="widget elevated-card">
+        <h2 class="widget-title">Shortcuts</h2>
+        <a href="/explore" class="shortcut-row"><i class="fa-solid fa-compass"></i><span>Discover people</span></a>
+        <a th:href="'/profile/' + ${currentUser.username}" class="shortcut-row"><i class="fa-solid fa-user-pen"></i><span>Update profile</span></a>
+        <button type="button" class="shortcut-row border-0 w-100 text-start" data-bs-toggle="modal" data-bs-target="#createStoryModal"><i class="fa-regular fa-circle-play"></i><span>Create a story</span></button>
+    </section>
+</aside>

@@ -1,0 +1,55 @@
+<div th:fragment="modals">
+    <div class="modal hidden" id="createStoryModal" tabindex="-1" aria-labelledby="createStoryTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 story-create-modal">
+                <div class="modal-header border-0">
+                    <h5 id="createStoryTitle" class="modal-title fw-bold">Create story</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="/stories/create" method="POST" enctype="multipart/form-data">
+                    <div class="modal-body">
+                        <div class="ui-field mb-3">
+                            <label for="storyFile" class="ui-label">Story media</label>
+                            <input id="storyFile" type="file" name="storyFile" class="form-control modern-input" accept="image/*,video/*" onchange="previewStoryMedia(event)" required>
+                            <span class="ui-help">Choose an image or video. Stories expire after 24 hours.</span>
+                            <div id="storyPreviewContainer" class="story-upload-preview mt-3" style="display:none;">
+                                <img id="storyImagePreview" alt="story preview" style="display:none;">
+                                <video id="storyVideoPreview" controls style="display:none;"></video>
+                            </div>
+                        </div>
+                        <div class="ui-field">
+                            <label for="storyCaption" class="ui-label">Caption</label>
+                            <textarea id="storyCaption" name="caption" class="form-control" rows="3" placeholder="Add a short caption"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="ui-button ui-button-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="ui-button ui-button-primary">Share story</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal hidden" id="storyViewerModal" tabindex="-1" aria-labelledby="storyViewerName" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered story-viewer-dialog">
+            <div class="modal-content border-0 story-viewer">
+                <div class="story-viewer-top">
+                    <div class="d-flex align-items-center gap-2">
+                        <img id="storyViewerAvatar" class="avatar avatar-sm" alt="avatar">
+                        <div>
+                            <div id="storyViewerName" class="fw-bold"></div>
+                            <div class="small opacity-75">Story</div>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button id="storyDeleteBtn" type="button" class="icon-action danger-action" onclick="deleteStory()" style="display:none;" aria-label="Delete story"><i class="fa-solid fa-trash"></i></button>
+                        <button type="button" class="icon-action" data-bs-dismiss="modal" aria-label="Close story"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+                <div id="storyViewerMedia" class="story-viewer-media"></div>
+                <div id="storyViewerCaption" class="story-viewer-caption"></div>
+            </div>
+        </div>
+    </div>
+</div>

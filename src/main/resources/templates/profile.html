@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${profileUser.fullName} + ' / TC'">Profile / TC</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Jost:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: 'var(--primary)',
+                        secondary: 'var(--accent)',
+                        cta: '#2563EB',
+                        glass: 'rgba(255, 255, 255, 0.72)',
+                        glassDark: 'rgba(15, 23, 42, 0.72)',
+                    },
+                    fontFamily: {
+                        sans: ['Jost', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/social-modern.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script src="/js/social-modern.js"></script>
+</head>
+<body>
+    <a href="#mainContent" class="skip-link">Skip to content</a>
+    <div class="toast-stack" id="toastStack"></div>
+    <div class="app-shell mt-4">
+        <div th:replace="~{components/sidebar :: sidebar}"></div>
+
+        <main id="mainContent" class="main-column flex flex-col gap-6 pb-20" tabindex="-1">
+            <header class="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md sticky top-4 z-10 px-6 py-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm flex justify-between items-center">
+                <div class="flex items-center gap-4">
+                    <a href="/" class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></a>
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-900 dark:text-white" th:text="${profileUser.fullName}">Full Name</h1>
+                        <div class="text-[13px] text-slate-500 dark:text-slate-400" th:text="${postCount} + ' posts'">0 posts</div>
+                    </div>
+                </div>
+                <button type="button" class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center" onclick="toggleTheme()" title="Toggle theme">
+                    <i class="fa-solid fa-circle-half-stroke"></i>
+                </button>
+            </header>
+
+            <section class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-sm overflow-hidden relative">
+                <div class="h-32 sm:h-48 bg-gradient-to-tr from-primary to-secondary w-full relative"></div>
+                <div class="px-5 pb-5">
+                    <div class="flex justify-between items-start gap-3 relative -mt-12 sm:-mt-16 mb-4">
+                        <img th:src="${profileUser.avatarUrl != null ? profileUser.avatarUrl : 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" class="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white dark:border-slate-900 object-cover bg-white dark:bg-slate-900 shadow-md" alt="avatar">
+                        <div class="mt-14 sm:mt-16 flex gap-2 flex-wrap">
+                            <th:block th:if="${profileUser.id == currentUser.id}">
+                                <button class="px-5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold rounded-full transition-colors border border-slate-200 dark:border-slate-700 shadow-sm" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                                    <i class="fa-solid fa-pen mr-1"></i> Edit
+                                </button>
+                                <button class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold rounded-full transition-colors border border-slate-200 dark:border-slate-700 shadow-sm" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                                    <i class="fa-solid fa-key"></i>
+                                </button>
+                            </th:block>
+                            <th:block th:if="${profileUser.id != currentUser.id}">
+                                <button th:id="'followBtn-' + ${profileUser.id}"
+                                        th:class="${isFollowing ? 'px-6 py-2 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold rounded-full transition-colors hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 dark:hover:bg-rose-950/30' : 'px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-full transition-colors hover:opacity-90'}"
+                                        th:text="${isFollowing ? 'Unfollow' : 'Follow'}"
+                                        th:onclick="'toggleFollow(' + ${profileUser.id} + ', this)'">
+                                </button>
+                            </th:block>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900 dark:text-white" th:text="${profileUser.fullName}">Full Name</h2>
+                        <div class="text-slate-500 dark:text-slate-400 text-[15px]" th:text="'@' + ${profileUser.username}">@username</div>
+                    </div>
+
+                    <div th:if="${param.pw != null and param.pw[0] == 'success'}" class="px-4 py-3 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-xl text-sm font-semibold mt-4 border border-emerald-200 dark:border-emerald-800/50">Password changed successfully.</div>
+                    <div th:if="${param.pw != null and param.pw[0] == 'error'}" class="px-4 py-3 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 rounded-xl text-sm font-semibold mt-4 border border-rose-200 dark:border-rose-800/50">Failed. Incorrect old password.</div>
+
+                    <div class="mt-4 text-slate-800 dark:text-slate-200 text-[15px] whitespace-pre-wrap" th:text="${profileUser.bio != null && profileUser.bio != '' ? profileUser.bio : 'No bio description yet.'}">Bio</div>
+
+                    <div class="mt-4 flex gap-4 text-[15px]">
+                        <div><strong class="text-slate-900 dark:text-white" th:text="${followingCount != null ? followingCount : 0}">0</strong> <span class="text-slate-500">Following</span></div>
+                        <div><strong class="text-slate-900 dark:text-white" id="followerCount" th:text="${followerCount != null ? followerCount : 0}">0</strong> <span class="text-slate-500">Followers</span></div>
+                    </div>
+                </div>
+            </section>
+
+            <div th:if="${posts == null || posts.isEmpty()}" class="flex flex-col items-center justify-center py-16 px-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border border-slate-200/50 dark:border-slate-800/50 rounded-2xl border-dashed">
+                <span class="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4"><i class="fa-regular fa-user text-2xl text-slate-400"></i></span>
+                <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-2">No posts yet</h2>
+                <p class="text-slate-500 dark:text-slate-400 text-center">Shared posts from this profile will appear here.</p>
+            </div>
+
+            <article th:each="post : ${posts}" class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-sm p-4 sm:p-5 transition-colors" th:id="'post-' + ${post.id}">
+                <div class="flex gap-3">
+                    <img th:src="${post.user.avatarUrl != null ? post.user.avatarUrl : 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" class="w-11 h-11 rounded-full object-cover flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity" alt="avatar">
+                    <div class="w-full min-w-0">
+                        <div class="flex justify-between gap-2 items-start">
+                            <div class="min-w-0 flex flex-col">
+                                <a th:href="'/profile/' + ${post.user.username}" class="font-bold text-[15px] text-slate-900 dark:text-white hover:underline truncate" th:text="${post.user.fullName}">Name</a>
+                                <span class="text-slate-500 dark:text-slate-400 text-[13px] truncate" th:text="'@' + ${post.user.username}">@username</span>
+                            </div>
+                            <button th:if="${currentUser.id == post.user.id or currentUser.role == 'ADMIN'}" type="button" class="w-8 h-8 rounded-full text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors flex items-center justify-center" th:onclick="'deletePost(' + ${post.id} + ')'" aria-label="Delete post"><i class="fa-solid fa-trash text-sm"></i></button>
+                        </div>
+
+                        <div class="mt-2 text-slate-800 dark:text-slate-200 text-[15px] leading-relaxed whitespace-pre-wrap break-words" th:utext="${post.content}">Content</div>
+
+                        <div th:if="${post.mediaUrl != null}" class="mt-3 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+                            <img th:if="${#strings.endsWith(#strings.toLowerCase(post.mediaUrl), '.jpg') or #strings.endsWith(#strings.toLowerCase(post.mediaUrl), '.jpeg') or #strings.endsWith(#strings.toLowerCase(post.mediaUrl), '.png') or #strings.endsWith(#strings.toLowerCase(post.mediaUrl), '.gif') or #strings.endsWith(#strings.toLowerCase(post.mediaUrl), '.webp')}" th:src="${post.mediaUrl}" class="w-full max-h-[500px] object-cover cursor-pointer" alt="post media">
+                            <video th:if="${#strings.endsWith(#strings.toLowerCase(post.mediaUrl), '.mp4') or #strings.endsWith(#strings.toLowerCase(post.mediaUrl), '.webm') or #strings.endsWith(#strings.toLowerCase(post.mediaUrl), '.ogg')}" th:src="${post.mediaUrl}" class="w-full max-h-[500px]" controls></video>
+                        </div>
+
+                        <div class="flex items-center gap-6 mt-4 pt-1">
+                            <button type="button" class="group flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-primary transition-colors" th:onclick="'toggleCommentSection(' + ${post.id} + ')'">
+                                <div class="w-9 h-9 rounded-full flex items-center justify-center group-hover:bg-primary/10 transition-colors"><i class="fa-regular fa-comment text-[17px]"></i></div>
+                                <span class="text-[13px] font-bold" data-role="comment-count" th:text="${post.comments != null ? post.comments.size() : post.commentCount}">0</span>
+                            </button>
+                            <button type="button"
+                                    th:classappend="${likedPostIds != null && likedPostIds.contains(post.id)} ? 'text-primary' : 'text-slate-500 dark:text-slate-400 hover:text-primary'"
+                                    class="group flex items-center gap-2 transition-colors"
+                                    th:onclick="'likePost(' + ${post.id} + ', this)'">
+                                <div class="w-9 h-9 rounded-full flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                                    <i class="text-[17px]" th:classappend="${likedPostIds != null && likedPostIds.contains(post.id)} ? 'fa-solid fa-heart drop-shadow-sm' : 'fa-regular fa-heart'"></i>
+                                </div>
+                                <span class="text-[13px] font-bold" data-role="like-count" th:text="${post.likes != null ? post.likes.size() : post.likeCount}">0</span>
+                            </button>
+                        </div>
+
+                        <div th:id="'comment-section-' + ${post.id}" style="display: none;" class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/60">
+                            <div class="flex flex-col gap-3 mb-4" th:id="'comment-list-' + ${post.id}">
+                                <div th:each="cmt : ${post.comments}" class="flex gap-2 group" th:data-comment-id="${cmt.id}">
+                                    <img th:src="${cmt.user.avatarUrl != null ? cmt.user.avatarUrl : 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" class="w-8 h-8 rounded-full object-cover flex-shrink-0" alt="avatar">
+                                    <div class="bg-slate-100/80 dark:bg-slate-800/50 px-3.5 py-2 rounded-2xl rounded-tl-sm min-w-0">
+                                        <a th:href="'/profile/' + ${cmt.user.username}" class="font-bold text-[13px] text-slate-900 dark:text-white hover:underline" th:text="${cmt.user.fullName}">Name</a>
+                                        <div class="text-[14px] text-slate-700 dark:text-slate-300 break-words" th:text="${cmt.content}">Content</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <form action="/post/comment" method="POST" class="flex gap-2 items-center" onsubmit="submitCommentOptimistic(event, this)">
+                                <input type="hidden" name="postId" th:value="${post.id}">
+                                <img th:src="${currentUser.avatarUrl != null ? currentUser.avatarUrl : 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" class="w-8 h-8 rounded-full object-cover flex-shrink-0" alt="avatar">
+                                <input type="text" name="content" class="w-full bg-slate-100 dark:bg-slate-800/80 border-transparent text-slate-900 dark:text-white text-sm rounded-full px-4 py-2.5 focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all" placeholder="Write a thoughtful reply..." required>
+                                <button type="submit" class="text-primary font-bold px-3 py-2 hover:opacity-80 transition-opacity" data-no-loading="true"><i class="fa-solid fa-paper-plane text-lg"></i></button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </article>
+            
+            <!-- Modals specific to Profile (inside mainContent so HTMX swaps them) -->
+            <div class="modal hidden fixed inset-0 z-50 items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileTitle" aria-hidden="true">
+                <div class="modal-dialog transform scale-95 opacity-0 transition-all duration-300 w-full max-w-sm mx-4">
+                    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200/50 dark:border-slate-800/50 overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                            <h5 id="editProfileTitle" class="text-lg font-bold text-slate-900 dark:text-white">Edit profile</h5>
+                            <button type="button" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 flex items-center justify-center transition-colors" data-bs-dismiss="modal" aria-label="Close">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        <form action="/profile/update" method="POST" enctype="multipart/form-data">
+                            <div class="p-6">
+                                <div class="mb-6 flex flex-col items-center">
+                                    <img id="avatarPreview" th:src="${profileUser.avatarUrl != null ? profileUser.avatarUrl : 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png'}" class="w-24 h-24 rounded-full object-cover border-4 border-white dark:border-slate-800 shadow-md mb-4" alt="avatar">
+                                    <input id="avatarUpload" type="file" name="avatarFile" class="block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-colors" accept="image/*" onchange="previewAvatar(event)">
+                                </div>
+                                <label for="profileBio" class="block font-bold text-sm text-slate-700 dark:text-slate-300 mb-2">Bio</label>
+                                <textarea id="profileBio" name="bio" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow" rows="3" th:text="${profileUser.bio}" placeholder="Write something about yourself..."></textarea>
+                            </div>
+                            <div class="px-6 pb-6 pt-2">
+                                <button type="submit" class="w-full py-3 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-200 text-white dark:text-slate-900 font-bold rounded-full shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]">Save changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal hidden fixed inset-0 z-50 items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordTitle" aria-hidden="true">
+                <div class="modal-dialog transform scale-95 opacity-0 transition-all duration-300 w-full max-w-sm mx-4">
+                    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200/50 dark:border-slate-800/50 overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                            <h5 id="changePasswordTitle" class="text-lg font-bold text-slate-900 dark:text-white">Change password</h5>
+                            <button type="button" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 flex items-center justify-center transition-colors" data-bs-dismiss="modal" aria-label="Close">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        <form action="/profile/change-password" method="POST">
+                            <div class="p-6">
+                                <label for="oldPassword" class="block font-bold text-sm text-slate-700 dark:text-slate-300 mb-2">Current password</label>
+                                <input id="oldPassword" type="password" name="oldPassword" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 mb-4" placeholder="Enter current password" autocomplete="current-password" required>
+                                
+                                <label for="newPassword" class="block font-bold text-sm text-slate-700 dark:text-slate-300 mb-2">New password</label>
+                                <input id="newPassword" type="password" name="newPassword" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="Enter new password" autocomplete="new-password" required>
+                            </div>
+                            <div class="px-6 pb-6 pt-2">
+                                <button type="submit" class="w-full py-3 bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-bold rounded-full shadow-lg shadow-primary/25 transition-transform hover:scale-[1.02] active:scale-[0.98]">Save password</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                function toggleFollow(userId, btnElement) {
+                    fetch('/api/users/' + userId + '/toggle-follow', { method: 'POST' })
+                        .then(res => res.text())
+                        .then(data => {
+                            const countEl = document.getElementById('followerCount');
+                            const currentCount = parseInt(countEl.innerText);
+
+                            if (data === 'followed') {
+                                btnElement.innerText = 'Unfollow';
+                                btnElement.className = 'px-6 py-2 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold rounded-full transition-colors hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 dark:hover:bg-rose-950/30';
+                                countEl.innerText = currentCount + 1;
+                            } else if (data === 'unfollowed') {
+                                btnElement.innerText = 'Follow';
+                                btnElement.className = 'px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-full transition-colors hover:opacity-90';
+                                countEl.innerText = currentCount - 1;
+                            }
+                        });
+                }
+
+                function previewAvatar(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('avatarPreview').src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            </script>
+        </main>
+
+        <div th:replace="~{components/rightbar :: rightbar}"></div>
+    </div>
+    
+    <div th:replace="~{components/navigation :: mobile_nav}"></div>
+    <div th:replace="~{components/modals :: modals}"></div>
+</body>
+</html>
