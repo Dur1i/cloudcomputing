@@ -1,0 +1,29 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto21
+  pre_build:
+    commands:
+      - java -version
+      - mvn -version
+  build:
+    commands:
+      - mvn clean package -DskipTests
+  post_build:
+    commands:
+      - cp target/websocial-1.0-SNAPSHOT.jar websocial.jar
+
+artifacts:
+  files:
+    - websocial.jar
+    - appspec.yml
+    - deploy/**/*
+    - scripts/**/*
+  discard-paths: no
+
+cache:
+  paths:
+    - /root/.m2/**/*
+

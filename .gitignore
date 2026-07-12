@@ -1,0 +1,6 @@
+target/
+uploads/
+*.pem
+*.env
+.env
+
