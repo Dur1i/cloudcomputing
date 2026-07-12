@@ -14,16 +14,75 @@ phases:
   post_build:
     commands:
       - cp target/websocial-1.0-SNAPSHOT.jar websocial.jar
+      - zip -qr tcblog-deploy.zip websocial.jar deploy scripts
+      - |
+        set -euo pipefail
 
-artifacts:
-  files:
-    - websocial.jar
-    - appspec.yml
-    - deploy/**/*
-    - scripts/**/*
-  discard-paths: no
+        if [ -z "${ARTIFACT_BUCKET:-}" ]; then
+          echo "ARTIFACT_BUCKET is required"
+          exit 1
+        fi
+
+        if [ -z "${AUTO_SCALING_GROUP:-}" ]; then
+          echo "AUTO_SCALING_GROUP is required"
+          exit 1
+        fi
+
+        REVISION="${CODEBUILD_RESOLVED_SOURCE_VERSION:-manual}"
+        ARTIFACT_KEY="releases/tcblog-${REVISION}.zip"
+
+        aws s3 cp tcblog-deploy.zip "s3://${ARTIFACT_BUCKET}/${ARTIFACT_KEY}" --sse AES256
+        aws s3 cp tcblog-deploy.zip "s3://${ARTIFACT_BUCKET}/releases/latest.zip" --sse AES256
+
+        INSTANCE_ID="$(aws autoscaling describe-auto-scaling-groups \
+          --auto-scaling-group-names "$AUTO_SCALING_GROUP" \
+          --query 'AutoScalingGroups[0].Instances[?LifecycleState==`InService`].InstanceId | [0]' \
+          --output text)"
+
+        if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" = "None" ]; then
+          echo "No InService instance found in $AUTO_SCALING_GROUP"
+          exit 1
+        fi
+
+        cat > /tmp/ssm-parameters.json <<EOF
+        {
+          "commands": [
+            "rm -rf /tmp/tcblog-deploy /tmp/tcblog-deploy.zip",
+            "aws s3 cp s3://${ARTIFACT_BUCKET}/releases/latest.zip /tmp/tcblog-deploy.zip",
+            "mkdir -p /tmp/tcblog-deploy",
+            "unzip -q /tmp/tcblog-deploy.zip -d /tmp/tcblog-deploy",
+            "bash /tmp/tcblog-deploy/scripts/deploy_via_ssm.sh"
+          ]
+        }
+        EOF
+
+        COMMAND_ID="$(aws ssm send-command \
+          --region "$AWS_DEFAULT_REGION" \
+          --instance-ids "$INSTANCE_ID" \
+          --document-name AWS-RunShellScript \
+          --comment "Deploy TCBlog ${REVISION}" \
+          --parameters file:///tmp/ssm-parameters.json \
+          --query 'Command.CommandId' \
+          --output text)"
+
+        if ! aws ssm wait command-executed \
+          --region "$AWS_DEFAULT_REGION" \
+          --command-id "$COMMAND_ID" \
+          --instance-id "$INSTANCE_ID"; then
+          aws ssm get-command-invocation \
+            --region "$AWS_DEFAULT_REGION" \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$INSTANCE_ID" \
+            --query '{Status:Status,Output:StandardOutputContent,Error:StandardErrorContent}'
+          exit 1
+        fi
+
+        aws ssm get-command-invocation \
+          --region "$AWS_DEFAULT_REGION" \
+          --command-id "$COMMAND_ID" \
+          --instance-id "$INSTANCE_ID" \
+          --query '{Status:Status,Output:StandardOutputContent,Error:StandardErrorContent}'
 
 cache:
   paths:
     - /root/.m2/**/*
-
