@@ -4,8 +4,8 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.JWTVerifier;
-import com.websocial.models.User;
 import com.websocial.models.Friendship;
+import com.websocial.models.User;
 import com.websocial.repositories.FriendshipRepository;
 import com.websocial.repositories.PostLikeRepository;
 import com.websocial.repositories.PostRepository;
@@ -15,14 +15,20 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
-// Import thư viện mã hóa
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-import java.util.List; 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Controller
 public class UserController {
@@ -38,16 +44,17 @@ public class UserController {
 
     private User getLoggedInUser(HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                if ("auth_token".equals(cookie.getName())) {
-                    try {
-                        Algorithm algorithm = Algorithm.HMAC256(SECRET_KEY);
-                        JWTVerifier verifier = JWT.require(algorithm).withIssuer("TC").build();
-                        DecodedJWT jwt = verifier.verify(cookie.getValue());
-                        return userRepository.findByUsername(jwt.getClaim("username").asString());
-                    } catch (Exception e) { return null; }
-                }
+        if (cookies == null) return null;
+
+        for (Cookie cookie : cookies) {
+            if (!"auth_token".equals(cookie.getName())) continue;
+            try {
+                Algorithm algorithm = Algorithm.HMAC256(SECRET_KEY);
+                JWTVerifier verifier = JWT.require(algorithm).withIssuer("TC").build();
+                DecodedJWT jwt = verifier.verify(cookie.getValue());
+                return userRepository.findByUsername(jwt.getClaim("username").asString());
+            } catch (Exception e) {
+                return null;
             }
         }
         return null;
@@ -56,7 +63,7 @@ public class UserController {
     @GetMapping("/profile/{username}")
     public String profilePage(@PathVariable String username, HttpServletRequest request, Model model) {
         User currentUser = getLoggedInUser(request);
-        if (currentUser == null) return "redirect:/login"; 
+        if (currentUser == null) return "redirect:/login";
 
         User profileUser = userRepository.findByUsername(username);
         if (profileUser == null) return "redirect:/";
@@ -65,74 +72,68 @@ public class UserController {
         long followingCount = friendshipRepository.countByRequesterAndStatus(profileUser, "ACCEPTED");
         long followerCount = friendshipRepository.countByReceiverAndStatus(profileUser, "ACCEPTED");
 
-        // ĐÃ FIX: Hứng bằng List thay vì đối tượng đơn lẻ
         boolean isFollowing = false;
         if (!currentUser.getId().equals(profileUser.getId())) {
             List<Friendship> checks = friendshipRepository.findByRequesterAndReceiver(currentUser, profileUser);
-            if (checks != null && !checks.isEmpty()) {
-                if ("ACCEPTED".equals(checks.get(0).getStatus())) {
-                    isFollowing = true;
-                }
-            }
+            isFollowing = checks != null && !checks.isEmpty() && "ACCEPTED".equals(checks.get(0).getStatus());
         }
 
         model.addAttribute("currentUser", currentUser);
         model.addAttribute("profileUser", profileUser);
-        model.addAttribute("postCount", count); 
+        model.addAttribute("postCount", count);
         model.addAttribute("followingCount", followingCount);
         model.addAttribute("followerCount", followerCount);
         model.addAttribute("isFollowing", isFollowing);
         model.addAttribute("posts", postRepository.findByUserOrderByCreatedAtDesc(profileUser));
         model.addAttribute("likedPostIds", postLikeRepository.findByUserId(currentUser.getId()).stream()
                 .map(like -> like.getPost().getId())
-                .collect(java.util.stream.Collectors.toSet()));
-        
+                .collect(Collectors.toSet()));
+
         return "profile";
     }
 
-    // API FOLLOW / UNFOLLOW (AJAX)
     @PostMapping("/api/users/{userId}/toggle-follow")
     @ResponseBody
     public String toggleFollow(@PathVariable Long userId, HttpServletRequest request) {
         User currentUser = getLoggedInUser(request);
         User targetUser = userRepository.findById(userId).orElse(null);
 
-        if (currentUser != null && targetUser != null && !currentUser.getId().equals(userId)) {
-            // ĐÃ FIX: Hứng bằng List
-            List<Friendship> existing = friendshipRepository.findByRequesterAndReceiver(currentUser, targetUser);
-            if (existing != null && !existing.isEmpty()) {
-                friendshipRepository.deleteAll(existing);
-                messagingTemplate.convertAndSend("/topic/social", java.util.Map.of(
-                        "type", "follow_updated",
-                        "actorId", currentUser.getId(),
-                        "targetId", targetUser.getId(),
-                        "status", "unfollowed",
-                        "actor", toUserPayload(currentUser),
-                        "target", toUserPayload(targetUser)
-                ));
-                return "unfollowed";
-            } else {
-                Friendship f = new Friendship();
-                f.setRequester(currentUser);
-                f.setReceiver(targetUser);
-                f.setStatus("ACCEPTED");
-                friendshipRepository.save(f);
-                messagingTemplate.convertAndSend("/topic/social", java.util.Map.of(
-                        "type", "follow_updated",
-                        "actorId", currentUser.getId(),
-                        "targetId", targetUser.getId(),
-                        "status", "followed",
-                        "actor", toUserPayload(currentUser),
-                        "target", toUserPayload(targetUser)
-                ));
-                return "followed";
-            }
+        if (currentUser == null || targetUser == null || currentUser.getId().equals(userId)) {
+            return "error";
         }
-        return "error";
+
+        List<Friendship> existing = friendshipRepository.findByRequesterAndReceiver(currentUser, targetUser);
+        if (existing != null && !existing.isEmpty()) {
+            friendshipRepository.deleteAll(existing);
+            messagingTemplate.convertAndSend("/topic/social", Map.of(
+                    "type", "follow_updated",
+                    "actorId", currentUser.getId(),
+                    "targetId", targetUser.getId(),
+                    "status", "unfollowed",
+                    "actor", toUserPayload(currentUser),
+                    "target", toUserPayload(targetUser)
+            ));
+            return "unfollowed";
+        }
+
+        Friendship friendship = new Friendship();
+        friendship.setRequester(currentUser);
+        friendship.setReceiver(targetUser);
+        friendship.setStatus("ACCEPTED");
+        friendshipRepository.save(friendship);
+        messagingTemplate.convertAndSend("/topic/social", Map.of(
+                "type", "follow_updated",
+                "actorId", currentUser.getId(),
+                "targetId", targetUser.getId(),
+                "status", "followed",
+                "actor", toUserPayload(currentUser),
+                "target", toUserPayload(targetUser)
+        ));
+        return "followed";
     }
 
-    private java.util.Map<String, Object> toUserPayload(User user) {
-        java.util.Map<String, Object> payload = new java.util.HashMap<>();
+    private Map<String, Object> toUserPayload(User user) {
+        Map<String, Object> payload = new HashMap<>();
         payload.put("id", user.getId());
         payload.put("fullName", user.getFullName() != null ? user.getFullName() : user.getUsername());
         payload.put("username", user.getUsername());
@@ -145,40 +146,38 @@ public class UserController {
                                  @RequestParam("newPassword") String newPassword,
                                  HttpServletRequest request) {
         User currentUser = getLoggedInUser(request);
-        
-        if (currentUser != null) {
-            // Khởi tạo bộ mã hóa mật khẩu
-            BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-            
-            // VÁ LỖI: Kiểm tra mật khẩu cũ đã băm
-            if (passwordEncoder.matches(oldPassword, currentUser.getPassword())) {
-                
-                // VÁ LỖI: Băm mật khẩu mới trước khi lưu vào database
-                currentUser.setPassword(passwordEncoder.encode(newPassword));
-                userRepository.save(currentUser);
-                
-                return "redirect:/profile/" + currentUser.getUsername() + "?pw=success";
-            } else {
-                return "redirect:/profile/" + currentUser.getUsername() + "?pw=error";
-            }
+        if (currentUser == null) return "redirect:/login";
+
+        BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+        String storedPassword = currentUser.getPassword();
+        boolean matchesHashedPassword = storedPassword != null && passwordEncoder.matches(oldPassword, storedPassword);
+        boolean matchesLegacyPlainPassword = storedPassword != null && storedPassword.equals(oldPassword);
+
+        if (!matchesHashedPassword && !matchesLegacyPlainPassword) {
+            return "redirect:/profile/" + currentUser.getUsername() + "?pw=error";
         }
-        return "redirect:/login";
+
+        currentUser.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(currentUser);
+        return "redirect:/profile/" + currentUser.getUsername() + "?pw=success";
     }
 
     @PostMapping("/profile/update")
-    public String updateProfile(@RequestParam("bio") String bio,
+    public String updateProfile(@RequestParam(value = "bio", required = false) String bio,
                                 @RequestParam(value = "avatarFile", required = false) MultipartFile avatarFile,
                                 HttpServletRequest request) {
         User currentUser = getLoggedInUser(request);
-        if (currentUser != null) {
-            currentUser.setBio(bio);
+        if (currentUser == null) return "redirect:/login";
+
+        try {
+            currentUser.setBio(bio != null ? bio.trim() : "");
             if (avatarFile != null && !avatarFile.isEmpty()) {
-                try {
-                    currentUser.setAvatarUrl(s3StorageService.upload(avatarFile, "avatars"));
-                } catch (Exception e) { e.printStackTrace(); }
+                currentUser.setAvatarUrl(s3StorageService.upload(avatarFile, "avatars"));
             }
             userRepository.save(currentUser);
+            return "redirect:/profile/" + currentUser.getUsername() + "?profile=success";
+        } catch (Exception e) {
+            return "redirect:/profile/" + currentUser.getUsername() + "?profile=error";
         }
-        return "redirect:/profile/" + (currentUser != null ? currentUser.getUsername() : "");
     }
 }

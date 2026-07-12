@@ -2241,6 +2241,7 @@ body {
 .modal-dialog {
     width: min(100%, 520px);
     margin: 0;
+    pointer-events: auto;
 }
 
 .modal-content {
