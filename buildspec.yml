@@ -16,7 +16,7 @@ phases:
       - cp target/websocial-1.0-SNAPSHOT.jar websocial.jar
       - zip -qr tcblog-deploy.zip websocial.jar deploy scripts
       - |
-        set -euo pipefail
+        set -eu
 
         if [ -z "${ARTIFACT_BUCKET:-}" ]; then
           echo "ARTIFACT_BUCKET is required"
