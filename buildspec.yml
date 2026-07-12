@@ -69,11 +69,26 @@ phases:
           --region "$AWS_DEFAULT_REGION" \
           --command-id "$COMMAND_ID" \
           --instance-id "$INSTANCE_ID"; then
+          echo "SSM command failed. Command ID: $COMMAND_ID"
+          echo "----- SSM invocation details -----"
+          aws ssm get-command-invocation \
+            --region "$AWS_DEFAULT_REGION" \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$INSTANCE_ID"
+          echo "----- SSM stdout -----"
           aws ssm get-command-invocation \
             --region "$AWS_DEFAULT_REGION" \
             --command-id "$COMMAND_ID" \
             --instance-id "$INSTANCE_ID" \
-            --query '{Status:Status,Output:StandardOutputContent,Error:StandardErrorContent}'
+            --query 'StandardOutputContent' \
+            --output text
+          echo "----- SSM stderr -----"
+          aws ssm get-command-invocation \
+            --region "$AWS_DEFAULT_REGION" \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$INSTANCE_ID" \
+            --query 'StandardErrorContent' \
+            --output text
           exit 1
         fi
 
