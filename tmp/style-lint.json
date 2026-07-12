@@ -1,0 +1,170 @@
+{
+  "input": "D:\\Downloads-2\\School\\Other\\websocial\\DoAnCloud_cap_nhat.docx",
+  "fonts_by_char_count": {
+    "Times New Roman": 9643
+  },
+  "direct_run_formatting_runs": 187,
+  "direct_paragraph_formatting_paragraphs": 259,
+  "heading_like_paragraphs_not_heading_style": [
+    {
+      "para_index": 2,
+      "text": "KHOA C\u00d4NG NGH\u1ec6 TH\u00d4NG TIN",
+      "style": "Normal"
+    },
+    {
+      "para_index": 8,
+      "text": "BA\u0301O CA\u0301O \u0110\u00d4\u0300 A\u0301N M\u00d4N HO\u0323C",
+      "style": "Normal"
+    },
+    {
+      "para_index": 9,
+      "text": "\u0110I\u1ec6N TO\u00c1N \u0110\u00c1M M\u00c2Y",
+      "style": "Normal"
+    },
+    {
+      "para_index": 22,
+      "text": "L\u1edcI C\u1ea2M \u01a0N",
+      "style": "Normal"
+    },
+    {
+      "para_index": 180,
+      "text": "3.6. Ki\u1ec3m th\u1eed",
+      "style": "Hinh anh"
+    },
+    {
+      "para_index": 184,
+      "text": "CH\u01af\u01a0NG 4: TH\u1ef0C NGHI\u1ec6M V\u00c0 \u0110\u00c1NH GI\u00c1",
+      "style": "Hinh anh"
+    },
+    {
+      "para_index": 185,
+      "text": "4.1. M\u00f4i tr\u01b0\u1eddng th\u1ef1c nghi\u1ec7m",
+      "style": "Hinh anh"
+    },
+    {
+      "para_index": 190,
+      "text": "4.2. K\u1ebft qu\u1ea3 tri\u1ec3n khai h\u1ea1 t\u1ea7ng AWS EC2",
+      "style": "Hinh anh"
+    },
+    {
+      "para_index": 195,
+      "text": "4.3. K\u1ebft qu\u1ea3 t\u1ed1i \u01b0u t\u00e0i nguy\u00ean",
+      "style": "Hinh anh"
+    },
+    {
+      "para_index": 212,
+      "text": "4.6. K\u1ebft qu\u1ea3 ki\u1ec3m th\u1eed ch\u1ee9c n\u0103ng",
+      "style": "Hinh anh"
+    },
+    {
+      "para_index": 217,
+      "text": "4.7. \u0110\u00e1nh gi\u00e1 h\u1ec7 th\u1ed1ng",
+      "style": "Hinh anh"
+    },
+    {
+      "para_index": 222,
+      "text": "CH\u01af\u01a0NG 5: K\u1ebeT LU\u1eacN",
+      "style": "Hinh anh"
+    },
+    {
+      "para_index": 223,
+      "text": "5.1. K\u1ebft qu\u1ea3 \u0111\u1ea1t \u0111\u01b0\u1ee3c",
+      "style": "Hinh anh"
+    },
+    {
+      "para_index": 227,
+      "text": "5.2. \u01afu \u0111i\u1ec3m c\u1ee7a h\u1ec7 th\u1ed1ng",
+      "style": "Hinh anh"
+    },
+    {
+      "para_index": 230,
+      "text": "5.3. H\u1ea1n ch\u1ebf c\u1ee7a h\u1ec7 th\u1ed1ng",
+      "style": "Hinh anh"
+    },
+    {
+      "para_index": 235,
+      "text": "5.4. H\u01b0\u1edbng ph\u00e1t tri\u1ec3n trong t\u01b0\u01a1ng lai",
+      "style": "Hinh anh"
+    },
+    {
+      "para_index": 239,
+      "text": "5.5. K\u1ebft lu\u1eadn chung",
+      "style": "Hinh anh"
+    },
+    {
+      "para_index": 258,
+      "text": "Vi\u1ebft t\u1eaft",
+      "style": "Normal"
+    },
+    {
+      "para_index": 259,
+      "text": "T\u00ean \u0111\u1ea7y \u0111\u1ee7",
+      "style": "Normal"
+    },
+    {
+      "para_index": 260,
+      "text": "\u00dd ngh\u0129a",
+      "style": "Normal"
+    }
+  ],
+  "examples": {
+    "direct_paragraph_formatting": [
+      {
+        "para_index": 1,
+        "text": "                                                                                                                        ",
+        "style": "Normal"
+      },
+      {
+        "para_index": 2,
+        "text": "KHOA C\u00d4NG NGH\u1ec6 TH\u00d4NG TIN",
+        "style": "Normal"
+      },
+      {
+        "para_index": 3,
+        "text": "   ",
+        "style": "Normal"
+      },
+      {
+        "para_index": 7,
+        "text": "",
+        "style": "Normal"
+      },
+      {
+        "para_index": 8,
+        "text": "BA\u0301O CA\u0301O \u0110\u00d4\u0300 A\u0301N M\u00d4N HO\u0323C",
+        "style": "Normal"
+      }
+    ],
+    "direct_run_formatting": [
+      {
+        "para_index": 1,
+        "run_text": "                                                                                ",
+        "style": "Normal"
+      },
+      {
+        "para_index": 1,
+        "run_text": "TR\u01af\u1edcNG \u0110\u1ea0I H\u1eccC NGO\u1ea0I NG\u1eee - TIN H\u1eccC ",
+        "style": "Normal"
+      },
+      {
+        "para_index": 1,
+        "run_text": "TH\u00c0NH PH\u1ed0 H\u1ed2 CH\u00cd MINH",
+        "style": "Normal"
+      },
+      {
+        "para_index": 2,
+        "run_text": "KHOA ",
+        "style": "Normal"
+      },
+      {
+        "para_index": 2,
+        "run_text": "C\u00d4NG NGH\u1ec6 TH\u00d4NG TIN",
+        "style": "Normal"
+      }
+    ]
+  },
+  "notes": [
+    "Direct formatting is not always wrong, but it often causes inconsistent output when templates change.",
+    "Heading-like paragraphs not using Heading styles can break TOC and accessibility."
+  ]
+}
