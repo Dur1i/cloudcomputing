@@ -9,6 +9,5 @@ for attempt in $(seq 1 30); do
     sleep 2
 done
 
-journalctl -u tc-social.service -n 100 --no-pager
+journalctl -u tcblog.service -n 100 --no-pager
 exit 1
-

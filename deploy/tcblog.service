@@ -1,0 +1,20 @@
+[Unit]
+Description=TCBlog Spring Boot Application
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/tcblog
+ExecStart=/opt/tcblog/run_application.sh
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=30
+SuccessExitStatus=143
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

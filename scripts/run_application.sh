@@ -25,6 +25,5 @@ exec /usr/bin/java \
     -XX:MaxDirectMemorySize=64m \
     -XX:+UseSerialGC \
     -XX:+ExitOnOutOfMemoryError \
-    -jar /opt/tc-social/websocial.jar \
+    -jar /opt/tcblog/websocial.jar \
     --spring.profiles.active=prod
-
