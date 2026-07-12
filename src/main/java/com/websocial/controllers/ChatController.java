@@ -6,6 +6,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.JWTVerifier;
 import com.websocial.models.*;
 import com.websocial.repositories.*;
+import com.websocial.services.S3StorageService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,7 @@ public class ChatController {
     @Autowired private FriendshipRepository friendshipRepository;
     @Autowired private ChatMessageRepository chatMessageRepository;
     @Autowired private org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
+    @Autowired private S3StorageService s3StorageService;
     private final String SECRET_KEY = "TCSocial#Secure#Key#2026!Pentest^&^";
 
     private User getLoggedInUser(HttpServletRequest request) {
@@ -67,13 +69,13 @@ public class ChatController {
                     }
                 }
             }
-            // 🛠️ ĐÃ SỬA CHỖ NÀY: Đổi "friends" thành "users" để HTML đọc được
+            // Expose accepted friends as users for the template.
             model.addAttribute("users", friends.values());
             
         } catch (Exception e) {
             e.printStackTrace(); 
             model.addAttribute("pendingRequests", new ArrayList<>());
-            model.addAttribute("users", new ArrayList<>()); // 🛠️ Sửa luôn ở phần catch
+            model.addAttribute("users", new ArrayList<>());
         }
         return "messages";
     }
@@ -88,16 +90,16 @@ public class ChatController {
             List<Friendship> check1 = friendshipRepository.findByRequesterAndReceiver(sender, receiver.get());
             List<Friendship> check2 = friendshipRepository.findByRequesterAndReceiver(receiver.get(), sender);
             
-            // Nếu chưa từng Follow -> Tạo mới và ACCEPTED luôn
+            // If there is no follow relation yet, create an accepted friendship.
             if (check1.isEmpty() && check2.isEmpty()) {
                 Friendship f = new Friendship();
                 f.setRequester(sender);
                 f.setReceiver(receiver.get());
-                f.setStatus("ACCEPTED"); // Bỏ qua PENDING, làm bạn luôn để test Chat!
+                f.setStatus("ACCEPTED");
                 friendshipRepository.save(f);
                 return "success";
             } else {
-                // Nếu đang bị kẹt ở PENDING (do lỗi trước đó) -> Cập nhật thành ACCEPTED luôn
+                // If a relation is still pending, accept it so chat can work.
                 if (!check1.isEmpty()) {
                     Friendship f = check1.get(0);
                     f.setStatus("ACCEPTED");
@@ -180,27 +182,27 @@ public class ChatController {
         return "error";
     }
 
-    // L?ng nghe c�c tin nh?n g?i d?n d�ch: /app/chat
+    // Listen for realtime chat messages sent to /app/chat
     @org.springframework.messaging.handler.annotation.MessageMapping("/chat")
     public void sendMessageRealTime(ChatMessageRequest request) {
         User sender = userRepository.findById(request.getSenderId()).orElse(null);
         User receiver = userRepository.findById(request.getReceiverId()).orElse(null);
 
         if (sender != null && receiver != null && request.getContent() != null && !request.getContent().isEmpty()) {
-            // Luu v�o Database
+            // Save to database.
             ChatMessage msg = new ChatMessage();
             msg.setSender(sender);
             msg.setReceiver(receiver);
             msg.setContent(request.getContent());
             chatMessageRepository.save(msg);
 
-            // ��ng g�i d? li?u b?n v? Client
+            // Build payload sent back to clients.
             java.util.Map<String, Object> payload = new java.util.HashMap<>();
             payload.put("content", msg.getContent());
             payload.put("senderId", sender.getId());
             payload.put("receiverId", receiver.getId());
 
-            // B?n tin nh?n v�o k�nh c?a ngu?i nh?n V� ngu?i g?i
+            // Send the message to both receiver and sender channels.
             messagingTemplate.convertAndSend("/topic/messages/" + receiver.getId(), payload);
             messagingTemplate.convertAndSend("/topic/messages/" + sender.getId(), payload);
         }
@@ -221,7 +223,7 @@ public class ChatController {
         messagingTemplate.convertAndSend("/topic/messages/" + receiverId, payload);
     }
     
-    // API Upload File ri�ng cho Chat (L? H?NG PENTEST: Kh�ng l?c d?nh d?ng file)
+    // Chat file upload endpoint.
     @PostMapping("/api/chat/upload")
     @ResponseBody
     public String uploadChatFile(@RequestParam("file") org.springframework.web.multipart.MultipartFile file, HttpServletRequest request) {
@@ -229,21 +231,7 @@ public class ChatController {
         if (currentUser == null || file.isEmpty()) return "error";
         
         try {
-            String uploadsDir = System.getProperty("user.dir") + "/uploads/";
-            java.io.File dir = new java.io.File(uploadsDir);
-            if (!dir.exists()) dir.mkdirs();
-
-            String originalFileName = file.getOriginalFilename();
-            String fileExtension = "";
-            if (originalFileName != null && originalFileName.contains(".")) {
-                fileExtension = originalFileName.substring(originalFileName.lastIndexOf(".")).toLowerCase();
-            }
-            String newFileName = java.util.UUID.randomUUID().toString() + fileExtension;
-            
-            java.io.File dest = new java.io.File(uploadsDir + newFileName);
-            file.transferTo(dest);
-            
-            return "/uploads/" + newFileName;
+            return s3StorageService.upload(file, "chat");
         } catch (Exception e) { 
             return "error"; 
         }

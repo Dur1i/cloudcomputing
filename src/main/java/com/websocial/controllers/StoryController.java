@@ -8,6 +8,7 @@ import com.websocial.models.Story;
 import com.websocial.models.User;
 import com.websocial.repositories.StoryRepository;
 import com.websocial.repositories.UserRepository;
+import com.websocial.services.S3StorageService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,7 @@ public class StoryController {
     @Autowired private UserRepository userRepository;
     @Autowired private StoryRepository storyRepository;
     @Autowired private SimpMessagingTemplate messagingTemplate;
+    @Autowired private S3StorageService s3StorageService;
 
     private final String SECRET_KEY = "TCSocial#Secure#Key#2026!Pentest^&^";
 
@@ -78,21 +80,12 @@ public class StoryController {
         }
 
         try {
-            String uploadsDir = System.getProperty("user.dir") + "/uploads/stories/";
-            java.io.File dir = new java.io.File(uploadsDir);
-            if (!dir.exists()) dir.mkdirs();
-
-            String fileExtension = originalFileName.substring(originalFileName.lastIndexOf(".")).toLowerCase();
-            String newFileName = java.util.UUID.randomUUID() + fileExtension;
-            java.io.File destinationFile = new java.io.File(uploadsDir + newFileName);
-            storyFile.transferTo(destinationFile);
-
             Calendar calendar = Calendar.getInstance();
             calendar.add(Calendar.HOUR, 24);
 
             Story story = new Story();
             story.setUser(currentUser);
-            story.setMediaUrl("/uploads/stories/" + newFileName);
+            story.setMediaUrl(s3StorageService.upload(storyFile, "stories"));
             story.setMediaType(allowedVideo ? "video" : "image");
             story.setCaption(sanitize(caption));
             story.setCreatedAt(new Date());

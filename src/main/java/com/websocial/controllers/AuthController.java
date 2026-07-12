@@ -7,6 +7,7 @@ import com.websocial.repositories.UserRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +23,9 @@ public class AuthController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Value("${app.cookie.secure:false}")
+    private boolean secureCookie;
 
     // Secret Key đồng bộ toàn hệ thống
     private final String SECRET_KEY = "TCSocial#Secure#Key#2026!Pentest^&^";
@@ -161,7 +165,7 @@ public class AuthController {
             // TẤM KHIÊN: Cookie bảo mật (OTG-AUTHN-001 & OTG-SESS-002)
             Cookie cookie = new Cookie("auth_token", token);
             cookie.setHttpOnly(true);           
-            cookie.setSecure(true); // Chỉ gửi qua HTTPS
+            cookie.setSecure(secureCookie);
             cookie.setPath("/");
             cookie.setMaxAge(864000);
             response.addCookie(cookie);

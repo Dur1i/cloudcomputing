@@ -1,34 +1,27 @@
 package com.websocial.controllers;
 
+import com.websocial.services.S3StorageService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 @RestController
 @RequestMapping("/api/upload")
 public class FileUploadController {
 
-    // Thư mục lưu trữ ảnh (Bạn có thể đổi đường dẫn này tùy theo máy ảo / máy thật của bạn)
-    private static final String UPLOAD_DIR = "uploads/";
+    @Autowired
+    private S3StorageService s3StorageService;
 
     @PostMapping("/")
     public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
         try {
-            String fileName = file.getOriginalFilename(); 
-            
-            // Tạo thư mục nếu chưa có
-            Files.createDirectories(Paths.get(UPLOAD_DIR));
-            
-            Path filePath = Paths.get(UPLOAD_DIR + fileName);
-            Files.write(filePath, file.getBytes());
-            
-            return ResponseEntity.ok("File đã được tải lên tại: " + filePath.toString());
-        } catch (IOException e) {
-            return ResponseEntity.status(500).body("Lỗi khi tải file lên server!");
+            return ResponseEntity.ok(s3StorageService.upload(file, "uploads"));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Upload failed");
         }
     }
 }

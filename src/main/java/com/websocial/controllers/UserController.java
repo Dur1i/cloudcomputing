@@ -10,6 +10,7 @@ import com.websocial.repositories.FriendshipRepository;
 import com.websocial.repositories.PostLikeRepository;
 import com.websocial.repositories.PostRepository;
 import com.websocial.repositories.UserRepository;
+import com.websocial.services.S3StorageService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,10 +22,6 @@ import org.springframework.web.multipart.MultipartFile;
 // Import thư viện mã hóa
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List; 
 
 @Controller
@@ -35,6 +32,7 @@ public class UserController {
     @Autowired private FriendshipRepository friendshipRepository;
     @Autowired private PostLikeRepository postLikeRepository;
     @Autowired private SimpMessagingTemplate messagingTemplate;
+    @Autowired private S3StorageService s3StorageService;
 
     private final String SECRET_KEY = "TCSocial#Secure#Key#2026!Pentest^&^";
 
@@ -176,13 +174,8 @@ public class UserController {
             currentUser.setBio(bio);
             if (avatarFile != null && !avatarFile.isEmpty()) {
                 try {
-                    String uploadDir = "uploads/avatars/";
-                    Files.createDirectories(Paths.get(uploadDir));
-                    String fileName = avatarFile.getOriginalFilename();
-                    Path filePath = Paths.get(uploadDir + fileName);
-                    Files.write(filePath, avatarFile.getBytes());
-                    currentUser.setAvatarUrl("/" + uploadDir + fileName);
-                } catch (IOException e) { e.printStackTrace(); }
+                    currentUser.setAvatarUrl(s3StorageService.upload(avatarFile, "avatars"));
+                } catch (Exception e) { e.printStackTrace(); }
             }
             userRepository.save(currentUser);
         }

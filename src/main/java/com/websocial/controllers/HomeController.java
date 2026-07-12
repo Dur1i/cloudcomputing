@@ -12,6 +12,7 @@ import com.websocial.repositories.PostLikeRepository;
 import com.websocial.repositories.PostRepository;
 import com.websocial.repositories.StoryRepository;
 import com.websocial.repositories.UserRepository;
+import com.websocial.services.S3StorageService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -39,6 +40,7 @@ public class HomeController {
     @Autowired private FriendshipRepository friendshipRepository;
     @Autowired private StoryRepository storyRepository;
     @Autowired private PostLikeRepository postLikeRepository;
+    @Autowired private S3StorageService s3StorageService;
     
     @Autowired private SimpMessagingTemplate messagingTemplate;
 
@@ -164,16 +166,7 @@ public class HomeController {
                 }
 
                 try {
-                    String uploadsDir = System.getProperty("user.dir") + "/uploads/";
-                    java.io.File dir = new java.io.File(uploadsDir);
-                    if (!dir.exists()) dir.mkdirs();
-
-                    String fileExtension = originalFileName.substring(originalFileName.lastIndexOf(".")).toLowerCase();
-                    String newFileName = java.util.UUID.randomUUID().toString() + fileExtension;
-                    
-                    java.io.File destinationFile = new java.io.File(uploadsDir + newFileName);
-                    imageFile.transferTo(destinationFile);
-                    post.setMediaUrl("/uploads/" + newFileName);
+                    post.setMediaUrl(s3StorageService.upload(imageFile, "posts"));
                 } catch (java.io.IOException e) { e.printStackTrace(); }
             }
         }
