@@ -2382,3 +2382,236 @@ body[data-theme="dark"] .story-item {
     }
 }
 
+/* --- Final responsive stability pass ---
+   Bootstrap utility classes such as .d-flex use !important, so mobile layout
+   needs explicit overrides to keep side rails from appearing above content. */
+@media (max-width: 900px) {
+    html,
+    body {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    .app-shell,
+    .app-shell.compact {
+        display: block !important;
+        width: min(100%, 760px) !important;
+        max-width: 100% !important;
+        margin: 0 auto !important;
+        padding: 10px 10px 96px !important;
+    }
+
+    .left-rail,
+    .right-rail,
+    .app-shell > .left-rail,
+    .app-shell > .right-rail,
+    .app-shell > div > .left-rail,
+    .app-shell > div > .right-rail {
+        display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        min-width: 0 !important;
+        height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+    }
+
+    .main-column {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        padding: 0 0 92px !important;
+        margin: 0 !important;
+    }
+
+    .main-column > header,
+    .page-header {
+        position: sticky !important;
+        top: 8px !important;
+        z-index: 50 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 0 12px !important;
+        padding: 14px !important;
+        border-radius: 18px !important;
+        gap: 12px !important;
+    }
+
+    .main-column > header {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        flex-wrap: wrap !important;
+    }
+
+    .main-column > header form {
+        flex: 1 1 220px !important;
+        min-width: 0 !important;
+    }
+
+    .page-title,
+    .main-column h1 {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+
+    .story-card,
+    .composer,
+    .post-card,
+    .widget,
+    .surface-card,
+    .main-column > section,
+    .main-column > article,
+    .main-column > div:not(.modal) {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        border-radius: 18px !important;
+    }
+
+    .story-card,
+    .composer,
+    .post-card,
+    .surface-card {
+        padding: 14px !important;
+    }
+
+    .story-strip {
+        display: grid !important;
+        grid-auto-flow: column !important;
+        grid-auto-columns: 88px !important;
+        gap: 12px !important;
+        max-width: 100% !important;
+        overflow-x: auto !important;
+        overscroll-behavior-inline: contain;
+        padding-bottom: 8px !important;
+    }
+
+    .story-item {
+        width: 88px !important;
+        min-width: 88px !important;
+        min-height: 130px !important;
+        padding: 10px !important;
+    }
+
+    .composer textarea,
+    .composer .form-control {
+        min-height: 80px;
+        font-size: 1rem;
+    }
+
+    .composer-tools {
+        flex-wrap: wrap !important;
+    }
+
+    .composer-tools .ui-button,
+    .composer-tools button[type="submit"] {
+        min-width: 132px;
+        flex: 0 0 auto;
+    }
+
+    .post-media,
+    article img,
+    article video {
+        max-width: 100% !important;
+    }
+
+    .mobile-bottom-nav {
+        position: fixed !important;
+        left: max(10px, env(safe-area-inset-left)) !important;
+        right: max(10px, env(safe-area-inset-right)) !important;
+        bottom: max(10px, env(safe-area-inset-bottom)) !important;
+        z-index: 120 !important;
+        display: grid !important;
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        gap: 6px !important;
+        padding: 8px !important;
+        border: 1px solid var(--line) !important;
+        border-radius: 18px !important;
+        background: rgba(255, 255, 255, 0.94) !important;
+        box-shadow: 0 16px 42px rgba(15, 23, 42, 0.18) !important;
+        backdrop-filter: blur(18px);
+    }
+
+    body[data-theme="dark"] .mobile-bottom-nav,
+    html.dark .mobile-bottom-nav {
+        background: rgba(15, 23, 42, 0.94) !important;
+    }
+
+    .mobile-bottom-nav a {
+        min-width: 0 !important;
+        min-height: 48px !important;
+        display: grid !important;
+        place-items: center !important;
+        border-radius: 14px !important;
+        color: var(--muted) !important;
+        text-decoration: none !important;
+    }
+
+    .mobile-bottom-nav a.active,
+    .mobile-bottom-nav a:hover {
+        color: var(--primary-dark) !important;
+        background: rgba(14, 165, 233, 0.16) !important;
+    }
+
+    .modal.hidden {
+        display: none !important;
+    }
+
+    .modal.show,
+    .modal.flex {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 16px !important;
+    }
+
+    .modal-dialog {
+        width: min(100%, 440px) !important;
+        max-width: calc(100vw - 28px) !important;
+        margin: 0 auto !important;
+    }
+
+    .modal-content,
+    .modal-dialog > div {
+        max-height: calc(100vh - 40px);
+        overflow-y: auto;
+    }
+}
+
+@media (min-width: 901px) {
+    .mobile-bottom-nav {
+        display: none !important;
+    }
+}
+
+@media (max-width: 420px) {
+    .app-shell,
+    .app-shell.compact {
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+    }
+
+    .page-header,
+    .main-column > header {
+        padding: 12px !important;
+    }
+
+    .page-title,
+    .main-column h1 {
+        font-size: clamp(1.45rem, 8vw, 2.1rem) !important;
+    }
+
+    .ui-button,
+    .ui-button-primary,
+    .ui-button-danger {
+        padding-left: 18px !important;
+        padding-right: 18px !important;
+        white-space: nowrap;
+    }
+}
+
