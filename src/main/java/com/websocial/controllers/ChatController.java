@@ -156,11 +156,7 @@ public class ChatController {
         User sender = getLoggedInUser(request);
         User receiver = userRepository.findById(receiverId).orElse(null);
         if (sender != null && receiver != null && !content.isEmpty()) {
-            ChatMessage msg = new ChatMessage();
-            msg.setSender(sender);
-            msg.setReceiver(receiver);
-            msg.setContent(content);
-            chatMessageRepository.save(msg);
+            saveAndBroadcastMessage(sender, receiver, content);
             return "success";
         }
         return "error";
@@ -189,23 +185,24 @@ public class ChatController {
         User receiver = userRepository.findById(request.getReceiverId()).orElse(null);
 
         if (sender != null && receiver != null && request.getContent() != null && !request.getContent().isEmpty()) {
-            // Save to database.
-            ChatMessage msg = new ChatMessage();
-            msg.setSender(sender);
-            msg.setReceiver(receiver);
-            msg.setContent(request.getContent());
-            chatMessageRepository.save(msg);
-
-            // Build payload sent back to clients.
-            java.util.Map<String, Object> payload = new java.util.HashMap<>();
-            payload.put("content", msg.getContent());
-            payload.put("senderId", sender.getId());
-            payload.put("receiverId", receiver.getId());
-
-            // Send the message to both receiver and sender channels.
-            messagingTemplate.convertAndSend("/topic/messages/" + receiver.getId(), payload);
-            messagingTemplate.convertAndSend("/topic/messages/" + sender.getId(), payload);
+            saveAndBroadcastMessage(sender, receiver, request.getContent());
         }
+    }
+
+    private void saveAndBroadcastMessage(User sender, User receiver, String content) {
+        ChatMessage msg = new ChatMessage();
+        msg.setSender(sender);
+        msg.setReceiver(receiver);
+        msg.setContent(content);
+        chatMessageRepository.save(msg);
+
+        java.util.Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("content", msg.getContent());
+        payload.put("senderId", sender.getId());
+        payload.put("receiverId", receiver.getId());
+
+        messagingTemplate.convertAndSend("/topic/messages/" + receiver.getId(), payload);
+        messagingTemplate.convertAndSend("/topic/messages/" + sender.getId(), payload);
     }
 
     @org.springframework.messaging.handler.annotation.MessageMapping("/chat/typing")

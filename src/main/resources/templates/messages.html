@@ -128,6 +128,7 @@
         const currentUserId = [[${currentUser.id}]];
         let currentReceiverId = null;
         let stompClient = null;
+        let chatSocketConnected = false;
 
         function initSidebar() {
             const seenIds = new Set();
@@ -169,6 +170,7 @@
             stompClient = Stomp.over(socket);
             stompClient.debug = null;
             stompClient.connect({}, function () {
+                chatSocketConnected = true;
                 stompClient.subscribe('/topic/messages/' + currentUserId, function (msg) {
                     const data = JSON.parse(msg.body);
                     if (data.senderId == currentReceiverId || data.senderId == currentUserId) {
@@ -181,6 +183,9 @@
                     const event = JSON.parse(msg.body);
                     if (event.type === 'follow_updated') handleFollowRealtime(event);
                 });
+            }, function () {
+                chatSocketConnected = false;
+                setTimeout(connect, 3000);
             });
         }
 
@@ -273,7 +278,9 @@
         function sendMessage() {
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
-            if (text && stompClient && currentReceiverId) {
+            if (!text || !currentReceiverId) return;
+
+            if (stompClient && chatSocketConnected) {
                 stompClient.send("/app/chat", {}, JSON.stringify({
                     senderId: parseInt(currentUserId),
                     receiverId: parseInt(currentReceiverId),
@@ -281,7 +288,35 @@
                 }));
                 updateSidebarMessage(currentReceiverId, currentUserId, text);
                 input.value = '';
+                return;
             }
+
+            sendMessageFallback(text, function () {
+                appendMsg(text, 'sent');
+                updateSidebarMessage(currentReceiverId, currentUserId, text);
+                input.value = '';
+            });
+        }
+
+        function sendMessageFallback(content, onSuccess) {
+            const body = new URLSearchParams();
+            body.append('receiverId', currentReceiverId);
+            body.append('content', content);
+
+            fetch('/api/chat/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body
+            })
+                .then(res => res.text())
+                .then(result => {
+                    if (result === 'success') {
+                        onSuccess();
+                    } else {
+                        showToast('Could not send message', 'error');
+                    }
+                })
+                .catch(() => showToast('Could not send message', 'error'));
         }
 
         function sendChatFile(event) {
@@ -300,12 +335,19 @@
                 .then(url => {
                     if (url !== 'error') {
                         const content = "[FILE]:" + url;
-                        stompClient.send("/app/chat", {}, JSON.stringify({
-                            senderId: parseInt(currentUserId),
-                            receiverId: parseInt(currentReceiverId),
-                            content: content
-                        }));
-                        updateSidebarMessage(currentReceiverId, currentUserId, content);
+                        if (stompClient && chatSocketConnected) {
+                            stompClient.send("/app/chat", {}, JSON.stringify({
+                                senderId: parseInt(currentUserId),
+                                receiverId: parseInt(currentReceiverId),
+                                content: content
+                            }));
+                            updateSidebarMessage(currentReceiverId, currentUserId, content);
+                        } else {
+                            sendMessageFallback(content, function () {
+                                appendMsg(content, 'sent');
+                                updateSidebarMessage(currentReceiverId, currentUserId, content);
+                            });
+                        }
                     } else {
                         showToast('Upload failed', 'error');
                     }
