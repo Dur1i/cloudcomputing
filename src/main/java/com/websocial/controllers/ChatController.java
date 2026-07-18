@@ -142,8 +142,11 @@ public class ChatController {
             List<ChatMessage> messages = chatMessageRepository.findBySenderAndReceiverOrReceiverAndSenderOrderBySentAtAsc(u1, u2, u1, u2);
             for (ChatMessage msg : messages) {
                 java.util.Map<String, Object> map = new java.util.HashMap<>();
+                map.put("id", msg.getId());
                 map.put("content", msg.getContent());
                 map.put("senderId", msg.getSender().getId());
+                map.put("receiverId", msg.getReceiver().getId());
+                map.put("sentAt", msg.getSentAt());
                 result.add(map);
             }
         }
@@ -197,9 +200,11 @@ public class ChatController {
         chatMessageRepository.save(msg);
 
         java.util.Map<String, Object> payload = new java.util.HashMap<>();
+        payload.put("id", msg.getId());
         payload.put("content", msg.getContent());
         payload.put("senderId", sender.getId());
         payload.put("receiverId", receiver.getId());
+        payload.put("sentAt", msg.getSentAt());
 
         messagingTemplate.convertAndSend("/topic/messages/" + receiver.getId(), payload);
         messagingTemplate.convertAndSend("/topic/messages/" + sender.getId(), payload);

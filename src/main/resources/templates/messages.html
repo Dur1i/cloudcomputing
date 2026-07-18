@@ -129,6 +129,8 @@
         let currentReceiverId = null;
         let stompClient = null;
         let chatSocketConnected = false;
+        let renderedMessageIds = new Set();
+        let chatHistoryPoller = null;
 
         function initSidebar() {
             const seenIds = new Set();
@@ -174,7 +176,7 @@
                 stompClient.subscribe('/topic/messages/' + currentUserId, function (msg) {
                     const data = JSON.parse(msg.body);
                     if (data.senderId == currentReceiverId || data.senderId == currentUserId) {
-                        appendMsg(data.content, data.senderId == currentUserId ? 'sent' : 'received');
+                        appendMsg(data.content, data.senderId == currentUserId ? 'sent' : 'received', data.id);
                     }
                     const partnerId = data.senderId == currentUserId ? data.receiverId : data.senderId;
                     updateSidebarMessage(partnerId, data.senderId, data.content);
@@ -248,10 +250,10 @@
             const welcome = document.getElementById('welcomeMsg');
             if (welcome) welcome.style.display = 'none';
             document.getElementById('chatMessages').innerHTML = '';
+            renderedMessageIds = new Set();
             document.getElementById('chatInputArea').style.display = 'block';
-            fetch('/api/chat/history/' + currentUserId + '/' + id)
-                .then(res => res.json())
-                .then(msgs => msgs.forEach(m => appendMsg(m.content, m.senderId == currentUserId ? 'sent' : 'received')));
+            loadChatHistory(id);
+            startChatHistoryPolling();
             
             // On mobile, hide the left sidebar when opening a chat
             if (window.innerWidth < 640) {
@@ -263,6 +265,27 @@
                     chatBox.classList.add('flex');
                 }
             }
+        }
+
+        function loadChatHistory(id) {
+            fetch('/api/chat/history/' + currentUserId + '/' + id)
+                .then(res => res.json())
+                .then(msgs => {
+                    msgs.forEach(m => appendMsg(m.content, m.senderId == currentUserId ? 'sent' : 'received', m.id));
+                    if (msgs.length > 0) {
+                        const last = msgs[msgs.length - 1];
+                        const partnerId = last.senderId == currentUserId ? last.receiverId : last.senderId;
+                        updateSidebarMessage(partnerId, last.senderId, last.content);
+                    }
+                })
+                .catch(() => {});
+        }
+
+        function startChatHistoryPolling() {
+            if (chatHistoryPoller) clearInterval(chatHistoryPoller);
+            chatHistoryPoller = setInterval(function () {
+                if (currentReceiverId) loadChatHistory(currentReceiverId);
+            }, 3000);
         }
 
         function closeMobileChat() {
@@ -292,9 +315,9 @@
             }
 
             sendMessageFallback(text, function () {
-                appendMsg(text, 'sent');
                 updateSidebarMessage(currentReceiverId, currentUserId, text);
                 input.value = '';
+                loadChatHistory(currentReceiverId);
             });
         }
 
@@ -344,8 +367,8 @@
                             updateSidebarMessage(currentReceiverId, currentUserId, content);
                         } else {
                             sendMessageFallback(content, function () {
-                                appendMsg(content, 'sent');
                                 updateSidebarMessage(currentReceiverId, currentUserId, content);
+                                loadChatHistory(currentReceiverId);
                             });
                         }
                     } else {
@@ -355,7 +378,10 @@
             event.target.value = '';
         }
 
-        function appendMsg(text, type) {
+        function appendMsg(text, type, messageId) {
+            if (messageId && renderedMessageIds.has(String(messageId))) return;
+            if (messageId) renderedMessageIds.add(String(messageId));
+
             const container = document.getElementById('chatMessages');
             const wrapper = document.createElement('div');
             wrapper.className = type === 'sent' ? 'flex justify-end' : 'flex justify-start';
